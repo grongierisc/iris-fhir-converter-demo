@@ -1,0 +1,5 @@
+    zn "FHIRSERVER"
+
+    do $system.OBJ.ImportDir("/irisdev/app/src/FHIRSERVER/cls/FHIR/Python","*.cls","cdk",.errors,1)
+
+    h

@@ -1,0 +1,325 @@
+@NIR = 1234567890123
+@NIRKey = 45
+@patientBirthplaceCity = Rennes
+@patientBirthplaceDistrict = Ille-et-Vilaine
+@patientLastname = Dupont
+@patientFirstname = Jean
+@patientGender = male
+@patientBirthdate = 1980-01-01
+@randomDateRecent = 2020-01-01
+@randomEmail = test@example.com
+@access_token = eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjEifQ.eyJqdGkiOiJodHRwczovL3dlYmdhdGV3YXkvb2F1dGgyLnhtR1N5NS1JSWdyYk1EdXR4WHFrTGNYeU10SSIsImlzcyI6Imh0dHBzOi8vd2ViZ2F0ZXdheS9vYXV0aDIiLCJzdWIiOiJUdjc2MHBtbE9acXZ3cGpOMldsRWZpNXdLd2RpYkNldFRxODZHS2J4RDM4IiwiZXhwIjoxNzUxOTY3MzA4LCJhdWQiOiJodHRwczovL3dlYmdhdGV3YXkvZmhpci9yNCIsInNjb3BlIjoidXNlci8qLioiLCJpYXQiOjE3NTE5NjM3MDh9.cAS6gr6uDQq7iAUjK9rdXH4-hN8slbUe1qu0gMZ3wxj-F0ylayVurRJH_fyVkbF2-R83-tOjAwmN6ZPPpUC0Kky2IWO053tYrgRHYg2-sWqVxBKlqST0GIdHmKQB3phxe95RRpTPoQrvXm1j9VII8Nb5MhNdt1XMmG0FC9d1cLIEiCGQUs7wGoxkt4L2T5ddNSkHfAWG7wz5psfc-N5gRER1W6-V6EgPCbj9_UnRZAbEwneioWy1GvnbEXLZk3NGPK3Z2rXoQx4jJgt_L_bkIkBLKY8-F7_wyfnuMCrELjlsP6QaG5DfQyAg0nBThslwSNSwkhdCksbgYYtySXMWTA
+
+POST https://localhost/oauth2/token
+Content-Type: application/x-www-form-urlencoded
+Authorization: Basic Tv760pmlOZqvwpjN2WlEfi5wKwdibCetTq86GKbxD38:znl_HBQKB1TVJfbpQ2ZhTNty2fHtUTdTiD88QAtHXCzPDewU5hKd4K3P7Tfn8J08y2K2f2bnnFL-tshcijLLdA
+
+grant_type=client_credentials&scope=user/*.*&aud=https://webgateway/fhir/r4
+
+###
+
+POST https://webgateway/fhir/Patient
+Accept: application/fhir+json
+Content-Type: application/fhir+json
+Authorization: Bearer {{access_token}}
+
+{
+    "resourceType": "Patient",
+    "meta": {
+        "profile": [
+            "http://interopsante.org/fhir/StructureDefinition/FrPatient"
+        ]
+    },
+    "extension": [
+        {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-birthPlace",
+            "valueAddress": {
+                "city": "{{patientBirthplaceCity}}",
+                "district": "{{patientBirthplaceDistrict}}"
+            }
+        },
+        {
+            "url": "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-identity-reliability",
+            "extension": [
+                {
+                    "url": "identityReliability",
+                    "valueCoding": {
+                        "system": "http://interopsante.org/fhir/CodeSystem/fr-v2-0445",
+                        "code": "VALI"
+                    }
+                },
+                {
+                    "url": "validationDate",
+                    "valueDate": "{{randomDateRecent}}"
+                },
+                {
+                    "url": "validationMode",
+                    "valueCoding": {
+                        "system": "http://interopsante.org/fhir/CodeSystem/fr-cs-mode-validation-identite",
+                        "code": "CN"
+                    }
+                }
+            ]
+        }
+    ],
+    "identifier": [
+        {
+            "use": "official",
+            "type": {
+                "coding": [
+                    {
+                        "system": "http://interopsante.org/CodeSystem/fr-v2-0203",
+                        "code": "INS-NIR",
+                        "display": "NIR"
+                    }
+                ]
+            },
+            "system": "urn:oid:1.2.250.1.213.1.4.8",
+            "value": "{{NIR}}{{NIRKey}}"
+        }
+    ],
+    "active": true,
+    "name": [
+        {
+            "use": "official",
+            "family": "{{patientLastname}}",
+            "given": [
+                "{{patientFirstname}}"
+            ],
+            "text": "{{patientFirstname}}"
+        },
+        {
+            "use": "usual",
+            "family": "{{patientLastname}}",
+            "given": [
+                "{{patientFirstname}}"
+            ]
+        }
+    ],
+    "telecom": [
+        {
+            "system": "phone",
+            "value": "0601020304",
+            "use": "home",
+            "rank": 1
+        },
+        {
+            "system": "email",
+            "value": "{{$randomEmail}}",
+            "rank": 2
+        }
+    ],
+    "gender": "{{patientGender}}",
+    "birthDate": "{{patientBirthdate}}",
+    "address": [
+        {
+            "line": [
+                "{{$randomStreetAddress}}"
+            ],
+            "city": "Rennes",
+            "postalCode": "35000"
+        }
+    ],
+    "maritalStatus": {
+        "coding": [
+            {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+                "code": "U"
+            }
+        ]
+    }
+}
+
+### Validate the response
+POST https://fhir-test.esante.bzh/gresb/Patient/$validate?profile=https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-patient|2.0.1
+Accept: application/fhir+json
+Authorization: Basic SuperUser:SYS
+Content-Type: application/fhir+json
+
+{
+    "resourceType": "Patient",
+    "meta": {
+        "profile": [
+            "http://interopsante.org/fhir/StructureDefinition/FrPatient"
+        ]
+    },
+    "extension": [
+        {
+            "url": "http://hl7.org/fhir/StructureDefinition/patient-birthPlace",
+            "valueAddress": {
+                "city": "{{patientBirthplaceCity}}",
+                "district": "{{patientBirthplaceDistrict}}"
+            }
+        },
+        {
+            "url": "http://interopsante.org/fhir/StructureDefinition/FrPatientIdentReliability",
+            "extension": [
+                {
+                    "url": "identityReliability",
+                    "valueCoding": {
+                        "system": "http://interopsante.org/fhir/CodeSystem/fr-v2-0445",
+                        "code": "VALI"
+                    }
+                },
+                {
+                    "url": "validationDate",
+                    "valueDate": "{{randomDateRecent}}"
+                },
+                {
+                    "url": "validationMode",
+                    "valueCoding": {
+                        "system": "http://interopsante.org/fhir/CodeSystem/fr-cs-mode-validation-identite",
+                        "code": "CN"
+                    }
+                }
+            ]
+        }
+    ],
+    "identifier": [
+        {
+            "use": "official",
+            "type": {
+                "coding": [
+                    {
+                        "system": "http://interopsante.org/CodeSystem/fr-v2-0203",
+                        "code": "INS-NIR",
+                        "display": "NIR"
+                    }
+                ]
+            },
+            "system": "urn:oid:1.2.250.1.213.1.4.8",
+            "value": "{{NIR}}{{NIRKey}}"
+        }
+    ],
+    "active": true,
+    "name": [
+        {
+            "use": "official",
+            "family": "{{patientLastname}}",
+            "given": [
+                "{{patientFirstname}}"
+            ],
+            "text": "{{patientFirstname}}"
+        },
+        {
+            "use": "usual",
+            "family": "{{patientLastname}}",
+            "given": [
+                "{{patientFirstname}}"
+            ]
+        }
+    ],
+    "telecom": [
+        {
+            "system": "phone",
+            "value": "0601020304",
+            "use": "home",
+            "rank": 1
+        },
+        {
+            "system": "email",
+            "value": "{{$randomEmail}}",
+            "rank": 2
+        }
+    ],
+    "gender": "{{patientGender}}",
+    "birthDate": "{{patientBirthdate}}",
+    "address": [
+        {
+            "line": [
+                "{{$randomStreetAddress}}"
+            ],
+            "city": "Rennes",
+            "postalCode": "35000"
+        }
+    ],
+    "maritalStatus": {
+        "coding": [
+            {
+                "system": "http://terminology.hl7.org/CodeSystem/v3-MaritalStatus",
+                "code": "U"
+            }
+        ]
+    }
+}
+
+### Post random patient
+GET https://webgateway/fhir/Patient
+Accept: application/fhir+json
+Content-Type: application/fhir+json
+Authorization: Bearer {{access_token}}
+
+{
+  "resourceType" : "Patient",
+  "id" : "cds-patient-example",
+  "meta" : {
+    "lastUpdated" : "2023-09-27T13:48:19.342+01:00",
+    "profile" : [
+       "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-patient-ins"
+    ]
+  },
+  "text" : {
+    "status" : "generated",
+    "div" : "<div xmlns=\"http://www.w3.org/1999/xhtml\"><p class=\"res-header-id\"><b>Generated Narrative: Patient cds-patient-example</b></p><a name=\"cds-patient-example\"> </a><a name=\"hccds-patient-example\"> </a><a name=\"cds-patient-example-fr-FR\"> </a><div style=\"display: inline-block; background-color: #d9e0e7; padding: 6px; margin: 4px; border: 1px solid #8da1b4; border-radius: 5px; line-height: 60%\"><p style=\"margin-bottom: 0px\">Last updated: 2023-09-27 13:48:19+0100</p><p style=\"margin-bottom: 0px\">Profile: <a href=\"https://hl7.fr/ig/fhir/core/2.0.1/StructureDefinition-fr-core-patient-ins.html\">FR Core Patient INS Profile</a></p></div><p style=\"border: 1px #661aff solid; background-color: #e6e6ff; padding: 10px;\">Jacques Thobois (official) Male, DoB: 1984-10-02 ( NIR définitif\u00a0(use:\u00a0official,\u00a0))</p><hr/><table class=\"grid\"><tr><td style=\"background-color: #f3f5da\" title=\"The registered place of birth of the patient. A sytem may use the address.text if they don't store the birthPlace address in discrete elements.\"><a href=\"http://hl7.org/fhir/extensions/5.1.0/StructureDefinition-patient-birthPlace.html\">Patient Birth Place</a></td><td colspan=\"3\">GOULVEN </td></tr><tr><td style=\"background-color: #f3f5da\" title=\"Reliabilility of the patient's identity | Précision sur le degré de fiabilité de l'identité du patient (si provisoire, validé... avec la justification : quelle type de pièce d'identité ?) avec la méthode de collection\">FR Core Patient Ident Reliability Extension:</td><td colspan=\"3\"><ul><li>identityStatus: <a href=\"https://hl7.fr/ig/fhir/core/2.0.1/CodeSystem-fr-core-cs-v2-0445.html#fr-core-cs-v2-0445-VALI\">FR Core CodeSystem v2-0445</a> VALI: Identité validée</li></ul></td></tr></table></div>"
+  },
+  "extension" : [
+    {
+      "extension" : [
+        {
+          "url" : "identityStatus",
+          "valueCoding" : {
+            "system" : "https://hl7.fr/ig/fhir/core/CodeSystem/fr-core-cs-v2-0445",
+            "code" : "VALI"
+          }
+        }
+      ],
+      "url" : "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-identity-reliability"
+    },
+    {
+      "url" : "http://hl7.org/fhir/StructureDefinition/patient-birthPlace",
+      "valueAddress" : {
+        "extension" : [
+          {
+            "url" : "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-address-insee-code",
+            "valueCoding" : {
+              "code" : "29064"
+            }
+          }
+        ],
+        "city" : "GOULVEN"
+      }
+    }
+  ],
+  "identifier" : [
+    {
+      "use" : "official",
+      "type" : {
+        "coding" : [
+          {
+            "system" : "https://hl7.fr/ig/fhir/core/CodeSystem/fr-core-cs-v2-0203",
+            "code" : "INS-NIR"
+          }
+        ]
+      },
+      "system" : "urn:oid:1.2.250.1.213.1.4.8",
+      "value" : "123456789012244"
+    }
+  ],
+  "name" : [
+    {
+      "extension" : [
+        {
+          "url" : "https://hl7.fr/ig/fhir/core/StructureDefinition/fr-core-patient-birth-list-given-name",
+          "valueString" : "Jacques"
+        }
+      ],
+      "use" : "official",
+      "family" : "Thobois",
+      "given" : [
+        "Jacques"
+      ]
+    }
+  ],
+  "gender" : "male",
+  "birthDate" : "1984-10-02"
+}

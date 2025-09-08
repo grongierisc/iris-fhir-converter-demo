@@ -1,0 +1,29 @@
+services:
+  iris:
+    build: 
+      context: .
+      dockerfile: dockerfile
+    restart: always
+    environment:
+      - ISC_CPF_MERGE_FILE=/irisdev/app/merge.cpf
+      - ISC_DATA_DIRECTORY=/dur/iris
+    command: 
+      - --key /irisdev/app/key/iris.key
+    ports: 
+      - 1972
+    volumes:
+      - .:/irisdev/app
+      - ./dur:/dur
+
+  webgateway:
+    image: containers.intersystems.com/intersystems/webgateway:latest-em
+    init: true
+    ports:
+    - 443:443
+    - 8081:80
+    environment:
+    - ISC_CSP_CONF_FILE=/webgateway/CSP.conf
+    - ISC_CSP_INI_FILE=/webgateway/CSP.ini
+    volumes:
+      - ./webgateway:/webgateway
+      - ./webgateway/cert:/opt/cert

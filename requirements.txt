@@ -1,0 +1,6 @@
+iris-pex-embedded-python
+iris-embedded-python-wrapper
+deepdiff
+PyJWT
+requests
+irissqlcli
