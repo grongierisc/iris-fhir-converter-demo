@@ -1,4 +1,4 @@
-Class FHIR.Python.InteractionsStrategy Extends (HS.FHIRServer.Storage.JsonAdvSQL.InteractionsStrategy, FHIR.Python.Helper)
+Class FHIR.Python.InteractionsStrategy Extends (HS.FHIRServer.Storage.Json.InteractionsStrategy, FHIR.Python.Helper)
 {
 
 Parameter StrategyKey = "FHIR.Python.InteractionsStrategy";

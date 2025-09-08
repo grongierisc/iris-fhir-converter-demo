@@ -3,9 +3,11 @@ package Iris;
 import java.util.*;
 import java.io.*;
 import org.hl7.fhir.validation.*;
+import org.hl7.fhir.validation.instance.advisor.BasePolicyAdvisorForFullValidation;
 import org.hl7.fhir.r5.model.*;
+import org.hl7.fhir.r5.utils.validation.constants.ReferenceValidationPolicy;
+import org.hl7.fhir.r5.elementmodel.Manager;
 import org.hl7.fhir.r5.formats.JsonParser;
-import org.hl7.fhir.r5.utils.ToolingExtensions;
 import org.hl7.fhir.utilities.FhirPublication;
 
 public class JavaValidatorFacade
@@ -27,11 +29,12 @@ public class JavaValidatorFacade
             ValidationEngine.ValidationEngineBuilder builder = new ValidationEngine.ValidationEngineBuilder().withVersion("4.0.1").withCanRunWithoutTerminologyServer(canRunWithoutTerminologyServer);
             validator = builder.fromSource("hl7.fhir.r4.core#4.0.1");
 
-            if (validator == null) 
+            validator.setPolicyAdvisor(new BasePolicyAdvisorForFullValidation(ReferenceValidationPolicy.IGNORE));
+
+            if (validator == null)
             {
                 throw new Exception("Unable to create validation engine");
             }
-
             if (txServer != null) {
                 validator.setTerminologyServer(txServer, null, FhirPublication.R4, false);
             }
@@ -76,7 +79,7 @@ public class JavaValidatorFacade
 
         String[] profiles = (profileList == null || profileList.length() == 0 ? new String[] {} : profileList.split(","));
 
-        Resource r = validator.validate(resourceFilePath, Arrays.asList(profiles), null, false);
+        Resource r = validator.validate(Manager.FhirFormat.JSON, new FileInputStream(resourceFilePath), Arrays.asList(profiles));
 
         return serialize(r);
     }
@@ -104,7 +107,7 @@ public class JavaValidatorFacade
 
         String[] profiles = (profileList == null || profileList.length() == 0 ? new String[] {} : profileList.split(","));
 
-        Resource r = validator.validate(source, Arrays.asList(profiles), null, false);
+        Resource r = validator.validate(Manager.FhirFormat.JSON, new FileInputStream(source), Arrays.asList(profiles));
 
         System.out.println();
         displayValidationResult(r);
@@ -145,26 +148,4 @@ public class JavaValidatorFacade
         }
     }
 
-    private static String getIssueSummary(OperationOutcome.OperationOutcomeIssueComponent issue)
-    {
-        String loc;
-        if (issue.hasExpression())
-        {
-            int line = ToolingExtensions.readIntegerExtension(issue, ToolingExtensions.EXT_ISSUE_LINE, -1);
-            int col = ToolingExtensions.readIntegerExtension(issue, ToolingExtensions.EXT_ISSUE_COL, -1);
-            loc = issue.getExpression().get(0).asStringValue() + (line >= 0 && col >= 0 ? " (line " + Integer.toString(line) + ", col" + Integer.toString(col) + ")" : "");
-        }
-        else if (issue.hasLocation()) 
-        {
-            loc = issue.getLocation().get(0).asStringValue();
-        }
-        else 
-        {
-            int line = ToolingExtensions.readIntegerExtension(issue, ToolingExtensions.EXT_ISSUE_LINE, -1);
-            int col = ToolingExtensions.readIntegerExtension(issue, ToolingExtensions.EXT_ISSUE_COL, -1);
-            loc = (line >= 0 && col >= 0 ? "line " + Integer.toString(line) + ", col" + Integer.toString(col) : "??");
-        }
- 
-        return "  " + issue.getSeverity().getDisplay() + " @ " + loc + " : " + issue.getDetails().getText();
-    }
 }

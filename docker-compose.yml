@@ -6,14 +6,10 @@ services:
     restart: always
     environment:
       - ISC_CPF_MERGE_FILE=/irisdev/app/merge.cpf
-      - ISC_DATA_DIRECTORY=/dur/iris
-    command: 
-      - --key /irisdev/app/key/iris.key
     ports: 
       - 1972
     volumes:
       - .:/irisdev/app
-      - ./dur:/dur
 
   webgateway:
     image: containers.intersystems.com/intersystems/webgateway:latest-em

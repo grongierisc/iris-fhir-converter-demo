@@ -12,7 +12,7 @@ class CustomStrategy(Strategy):
     
     def on_get_capability_statement(self, capability_statement):
         # Example : del resources Account
-        capability_statement['rest'][0]['resource'] = [resource for resource in capability_statement['rest'][0]['resource'] if resource['type'] != 'Account']
+        # capability_statement['rest'][0]['resource'] = [resource for resource in capability_statement['rest'][0]['resource'] if resource['type'] != 'Account']
         return capability_statement
 
 class CustomInteraction(Interaction):

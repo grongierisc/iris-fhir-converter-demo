@@ -1,10 +1,14 @@
-from bp import FhirMainProcess
-from bo import FhirHttpOperation, RandomRestOperation
+import os
+
+from bp import FhirMainProcess, FhirConverterProcess
+from bo import FhirHttpOperation, RandomRestOperation, FhirConverterOperation
 
 
 CLASSES = {
     'Python.EAI.bp.FhirMainProcess' : FhirMainProcess, 
     'Python.EAI.bo.FhirHttpOperation' : FhirHttpOperation,
+    'Python.FhirConverterProcess' : FhirConverterProcess,
+    'Python.FhirConverterOperation' : FhirConverterOperation,
     'Python.EAI.bo.RandomRestOperation' : RandomRestOperation
 }
 
@@ -106,6 +110,71 @@ PRODUCTIONS = [
                     "@Name": "%settings",
                     "#text": "url=https://webgateway/fhir/r4"
                 }
+            },
+            {
+                "@Name": "Python.FhirConverterProcess",
+                "@Category": "",
+                "@ClassName": "Python.FhirConverterProcess",
+                "@PoolSize": "1", 
+                "@Enabled": "true",
+                "@Foreground": "false",
+                "@Comment": "",
+                "@LogTraceEvents": "false",
+                "@Schedule": ""
+            },
+            {
+                "@Name": "Python.FhirConverterOperation",
+                "@Category": "",
+                "@ClassName": "Python.FhirConverterOperation",
+                "@PoolSize": "4",
+                "@Enabled": "true",
+                "@Foreground": "false",
+                "@Comment": "",
+                "@LogTraceEvents": "false",
+                "@Schedule": "",
+                "Setting": {
+                    "@Target": "Host",
+                    "@Name": "%settings",
+                    "#text": f"template_path={os.getenv('TEMPLATE_PATH', '/irisdev/app/templates')}"
+                }
+            },
+            {
+                "@Name": "IRIS.Hl7v2FileService",
+                "@Category": "",
+                "@ClassName": "EnsLib.HL7.Service.FileService",
+                "@PoolSize": "1",
+                "@Enabled": "true",
+                "@Foreground": "false",
+                "@Comment": "",
+                "@LogTraceEvents": "false",
+                "@Schedule": "",
+                "Setting": [
+                    {
+                        "@Target": "Host",
+                        "@Name": "MessageSchemaCategory",
+                        "#text": "2.8"
+                    },
+                    {
+                        "@Target": "Host",
+                        "@Name": "TargetConfigNames",
+                        "#text": "Python.FhirConverterProcess"
+                    },
+                    {
+                        "@Target": "Adapter",
+                        "@Name": "FilePath",
+                        "#text": "/irisdev/app/misc/data/input/"
+                    },
+                    {
+                        "@Target": "Adapter",
+                        "@Name": "ArchivePath",
+                        "#text": "/irisdev/app/misc/data/archive"
+                    },
+                    {
+                        "@Target": "Adapter",
+                        "@Name": "FileSpec",
+                        "#text": "*.hl7"
+                    }
+                ]
             }
         ]
     }

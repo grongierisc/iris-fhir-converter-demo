@@ -7,7 +7,7 @@ ClassMethod ValidateBundle(
 {
 	do ##super(pResourceObject, pFHIRVersion)
 
-	do ##class(FHIR.Python.Validation).Validate(pResourceObject)
+	//do ##class(FHIR.Python.Validation).Validate(pResourceObject)
 }
 
 }

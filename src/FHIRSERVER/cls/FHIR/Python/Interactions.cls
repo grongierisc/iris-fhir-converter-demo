@@ -1,17 +1,17 @@
-Class FHIR.Python.Interactions Extends (HS.FHIRServer.Storage.JsonAdvSQL.Interactions, FHIR.Python.Helper)
+Class FHIR.Python.Interactions Extends (HS.FHIRServer.Storage.Json.Interactions, FHIR.Python.Helper)
 {
 
 // Commented for using the default values that support Smart on FHIR
 
 // Parameter OAuth2TokenHandlerClass As %String = "FHIR.Python.OAuth2Token";
 
-Parameter ResourceValidatorClass = "FHIR.Python.ResourceValidator";
+// Parameter ResourceValidatorClass = "FHIR.Python.ResourceValidator";
 
 Parameter OperationHandlerClass As %String = "FHIR.Python.OperationHandler";
 
 // Parameter BatchHandlerClass As %String = "FHIR.Python.BundleProcessor";
 
-Method %OnNew(pStrategy As HS.FHIRServer.Storage.JsonAdvSQL.InteractionsStrategy) As %Status
+Method %OnNew(pStrategy As HS.FHIRServer.Storage.Json.InteractionsStrategy) As %Status
 {
 	// %OnNew is called when the object is created.
 	// The pStrategy parameter is the strategy object that created this object.
