@@ -11,12 +11,15 @@ User name and password for both is `SuperUser` / `SYS`.
 
 ## Running the project
 
-1. Make sure you have [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
+1. Make sure you have either [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [Podman Desktop](https://podman-desktop.io/) installed and running.
 2. Clone this repository.
 3. Open a terminal and navigate to the root of the cloned repository.
 4. Run the following command to build and start the Docker container:
     ```bash
+    # Using Docker
     docker compose up --build
+    # Or using Podman
+    podman compose up --build
     ```
 
 5. Wait for the container to start. This may take a few minutes as it needs to build the image and initialize the IRIS instance.
