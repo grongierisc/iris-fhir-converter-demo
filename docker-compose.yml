@@ -1,25 +1,53 @@
+version: "3.8"
 services:
   iris:
     build:
       context: .
       dockerfile: dockerfile
+    container_name: iris
+    depends_on:
+      - webgateway
     environment:
       - ISC_CPF_MERGE_FILE=/irisdev/app/merge.cpf
+    hostname: iris
+    networks:
+      - iris-fhir-converter-demo
     ports:
-      - 1972
+      - name: superserver-port
+        target: 1972
+        # host_ip: 0.0.0.0
+        # published: 9091
+        protocol: tcp
     restart: always
     volumes:
       - .:/irisdev/app
 
   webgateway:
+    container_name: webgateway
     environment:
       - ISC_CSP_CONF_FILE=/webgateway/CSP.conf
       - ISC_CSP_INI_FILE=/webgateway/CSP.ini
+    hostname: webgateway
     image: containers.intersystems.com/intersystems/webgateway:latest-em
     init: true
+    networks:
+      - iris-fhir-converter-demo
     ports:
-      - 443:443
-      - 8081:80
+      - name: webgateway-https
+        target: 443
+        host_ip: 0.0.0.0
+        published: 443
+        protocol: tcp
+        app_protocol: https
+      - name: webgateway-http
+        target: 80
+        host_ip: 0.0.0.0
+        published: 8081
+        protocol: tcp
+        app_protocol: http
     volumes:
       - ./webgateway:/webgateway
       - ./webgateway/cert:/opt/cert
+
+networks:
+  iris-fhir-converter-demo:
