@@ -7,7 +7,6 @@ USER root
 # https://containers.intersystems.com/contents
 # https://github.com/intersystems-community/iris-docker-zpm-usage-template/blob/master/module.xml
 # TODO: https://github.com/grongierisc/iris-docker-multi-stage-script
-# ---- Enable en_US.UTF-8 locale ----
 
 
 # Packages installation and configuration
@@ -21,9 +20,6 @@ RUN set -eux; \
 	# ---- Clean up apt cache ----
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/* && \
-	sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && \
-	locale-gen && \
-	update-locale LANG=en_US.UTF-8 && \
 	# ---- Set up passwordless sudo for the package manager user and do a smoke test ----
 	echo "${ISC_PACKAGE_MGRUSER} ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${ISC_PACKAGE_MGRUSER}" && \
 	chmod 0440 "/etc/sudoers.d/${ISC_PACKAGE_MGRUSER}" && \
