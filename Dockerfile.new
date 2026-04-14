@@ -3,6 +3,8 @@ FROM $IMAGE
 
 USER root
 
+ENV APP_HOME=/irisdev/app
+
 # See:
 # https://containers.intersystems.com/contents
 # https://github.com/intersystems-community/iris-docker-zpm-usage-template/blob/master/module.xml
@@ -26,8 +28,8 @@ RUN set -eux; \
 	sudo -u "${ISC_PACKAGE_MGRUSER}" sudo echo "[ OK ] Enable passwordless sudo-ing for ${ISC_PACKAGE_MGRUSER}"
 
 # Create local folder for the application
-RUN mkdir -p /irisdev/app && \
-	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" /irisdev/app
+RUN mkdir -p "${APP_HOME}" && \
+	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" "${APP_HOME}"
 
 USER ${ISC_PACKAGE_MGRUSER}
 
@@ -45,24 +47,24 @@ ENV IRISUSERNAME="SuperUser" \
     PATH="/home/irisowner/.local/bin:${ISC_PACKAGE_INSTALLDIR}/bin:${PATH}"
 
 # Copy the source code
-COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . /irisdev/app/
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . "${APP_HOME}/"
 
 # Install the requirements, force write into the system site-packages directory
-RUN pip3 install -r /irisdev/app/requirements.txt \
+RUN pip3 install -r "${APP_HOME}/requirements.txt" \
 	--no-cache-dir \
 	--break-system-packages
 
-WORKDIR /irisdev/app/src/FHIRSERVER/java/
-RUN mkdir -p /home/irisowner/java/lib && \
-	wget https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O /home/irisowner/java/lib/validator_cli.jar && \
-	javac /irisdev/app/src/FHIRSERVER/java/Iris/JavaValidatorFacade.java -classpath /home/irisowner/java/lib/validator_cli.jar -d /home/irisowner/java/lib
+WORKDIR "${APP_HOME}/src/FHIRSERVER/java/"
+RUN mkdir -p "${HOME}/java/lib" && \
+	wget https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O "${HOME}/java/lib/validator_cli.jar" && \
+	javac "${APP_HOME}/src/FHIRSERVER/java/Iris/JavaValidatorFacade.java" -classpath "${HOME}/java/lib/validator_cli.jar" -d "${HOME}/java/lib"
 
 # RUN iris start ${ISC_PACKAGE_INSTANCENAME} quietly EmergencyId=sys,sys && \
 #     sh install.sh ${ISC_PACKAGE_INSTANCENAME} sys USER && \
 #     /bin/echo -e "sys\nsys\n" | iris stop ${ISC_PACKAGE_INSTANCENAME} quietly
 
 RUN iris start "${ISC_PACKAGE_INSTANCENAME}" \
-	&& iris session "${ISC_PACKAGE_INSTANCENAME}" < /irisdev/app/iris.script \
+	&& iris session "${ISC_PACKAGE_INSTANCENAME}" < "${APP_HOME}/iris.script" \
 	&& iop --init \
-	&& iop -m /irisdev/app/src/EAI/python/EAI/settings.py \
+	&& iop -m "${APP_HOME}/src/EAI/python/EAI/settings.py" \
 	&& iris stop "${ISC_PACKAGE_INSTANCENAME}" quietly
