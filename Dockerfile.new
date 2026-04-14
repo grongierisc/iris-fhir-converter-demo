@@ -56,7 +56,7 @@ RUN pip3 install -r "${APP_HOME}/requirements.txt" \
 
 WORKDIR "${APP_HOME}/src/FHIRSERVER/java/"
 RUN mkdir -p "${HOME}/java/lib" && \
-	wget https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O "${HOME}/java/lib/validator_cli.jar" && \
+	wget -q https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O "${HOME}/java/lib/validator_cli.jar" && \
 	javac "${APP_HOME}/src/FHIRSERVER/java/Iris/JavaValidatorFacade.java" -classpath "${HOME}/java/lib/validator_cli.jar" -d "${HOME}/java/lib"
 
 # RUN iris start ${ISC_PACKAGE_INSTANCENAME} quietly EmergencyId=sys,sys && \
