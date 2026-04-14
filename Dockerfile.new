@@ -17,15 +17,10 @@ RUN set -eux; \
 	apt-get update && \
 	apt-get install -y --no-install-recommends \
 	git \
-	nano \
-	sudo && \
+	nano && \
 	# ---- Clean up apt cache ----
 	apt-get clean && \
-	rm -rf /var/lib/apt/lists/* && \
-	# ---- Set up passwordless sudo for the package manager user and do a smoke test ----
-	echo "${ISC_PACKAGE_MGRUSER} ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${ISC_PACKAGE_MGRUSER}" && \
-	chmod 0440 "/etc/sudoers.d/${ISC_PACKAGE_MGRUSER}" && \
-	sudo -u "${ISC_PACKAGE_MGRUSER}" sudo echo "[ OK ] Enable passwordless sudo-ing for ${ISC_PACKAGE_MGRUSER}"
+	rm -rf /var/lib/apt/lists/*
 
 # Create local folder for the application
 RUN mkdir -p "${APP_HOME}" && \
