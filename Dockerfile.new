@@ -1,0 +1,69 @@
+ARG IMAGE=containers.intersystems.com/intersystems/irishealth-community:latest-em
+FROM $IMAGE 
+
+USER root
+
+# See:
+# https://containers.intersystems.com/contents
+# https://github.com/intersystems-community/iris-docker-zpm-usage-template/blob/master/module.xml
+# TODO: https://github.com/grongierisc/iris-docker-multi-stage-script
+# ---- Enable en_US.UTF-8 locale ----
+
+
+# Packages installation and configuration
+RUN set -eux; \
+	# ---- Install packages ----
+	apt-get update && \
+	apt-get install -y --no-install-recommends \
+	git \
+	nano \
+	sudo && \
+	# ---- Clean up apt cache ----
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/* && \
+	sed -i 's/^# *\(en_US.UTF-8\)/\1/' /etc/locale.gen && \
+	locale-gen && \
+	update-locale LANG=en_US.UTF-8 && \
+	# ---- Set up passwordless sudo for the package manager user and do a smoke test ----
+	echo "${ISC_PACKAGE_MGRUSER} ALL=(ALL) NOPASSWD: ALL" > "/etc/sudoers.d/${ISC_PACKAGE_MGRUSER}" && \
+	chmod 0440 "/etc/sudoers.d/${ISC_PACKAGE_MGRUSER}" && \
+	sudo -u "${ISC_PACKAGE_MGRUSER}" sudo echo "[ OK ] Enable passwordless sudo-ing for ${ISC_PACKAGE_MGRUSER}"
+
+# Create local folder for the application
+RUN mkdir -p /irisdev/app && \
+	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" /irisdev/app
+
+USER ${ISC_PACKAGE_MGRUSER}
+
+## Python stuff
+ENV IRISUSERNAME="SuperUser" \
+    IRISPASSWORD="SYS" \
+    IRISNAMESPACE="EAI" \
+    PYTHONIOENCODING=UTF-8 \
+    PYTHONUNBUFFERED=1 \
+    PYTHON_PATH=/usr/irissys/bin/ \
+    LD_LIBRARY_PATH="${ISC_PACKAGE_INSTALLDIR}/bin:${LD_LIBRARY_PATH}" \
+    PATH="/home/irisowner/.local/bin:/usr/irissys/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/irisowner/bin:${PATH}"
+
+# Copy the source code
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . /irisdev/app/
+
+# Install the requirements, force write into the system site-packages directory
+RUN pip3 install -r /irisdev/app/requirements.txt \
+	--no-cache-dir \
+	--break-system-packages
+
+WORKDIR /irisdev/app/src/FHIRSERVER/java/
+RUN mkdir -p /home/irisowner/java/lib && \
+	wget https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O /home/irisowner/java/lib/validator_cli.jar && \
+	javac /irisdev/app/src/FHIRSERVER/java/Iris/JavaValidatorFacade.java -classpath /home/irisowner/java/lib/validator_cli.jar -d /home/irisowner/java/lib
+
+# RUN iris start ${ISC_PACKAGE_INSTANCENAME} quietly EmergencyId=sys,sys && \
+#     sh install.sh ${ISC_PACKAGE_INSTANCENAME} sys USER && \
+#     /bin/echo -e "sys\nsys\n" | iris stop ${ISC_PACKAGE_INSTANCENAME} quietly
+
+RUN iris start "${ISC_PACKAGE_INSTANCENAME}" \
+	&& iris session "${ISC_PACKAGE_INSTANCENAME}" < /irisdev/app/iris.script \
+	&& iop --init \
+	&& iop -m /irisdev/app/src/EAI/python/EAI/settings.py \
+	&& iris stop "${ISC_PACKAGE_INSTANCENAME}" quietly
