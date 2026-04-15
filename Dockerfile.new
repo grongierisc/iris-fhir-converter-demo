@@ -6,6 +6,7 @@ USER root
 ENV APP_HOME=/irisdev/app
 
 # See:
+# For env vars: https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GIEUNIX_unattended_parameters
 # https://containers.intersystems.com/contents
 # https://github.com/intersystems-community/iris-docker-zpm-usage-template/blob/master/module.xml
 # TODO: https://github.com/grongierisc/iris-docker-multi-stage-script
