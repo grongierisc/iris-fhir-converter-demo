@@ -1,8 +1,5 @@
-iris-pex-embedded-python
-iris-embedded-python-wrapper
+-r requirements-grongier.txt
 deepdiff
+irissqlcli
 PyJWT
 requests
-irissqlcli
-pytest
-python-fhir-converter @ https://github.com/grongierisc/fhir-converter/releases/download/v0.4.10/python_fhir_converter-0.4.10-py3-none-any.whl
