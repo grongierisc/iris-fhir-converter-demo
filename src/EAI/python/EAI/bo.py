@@ -1,5 +1,5 @@
 import requests
-from liquid import FileExtensionLoader
+from liquid import FileSystemLoader
 from fhir_converter.renderers import Hl7v2Renderer, make_environment, hl7v2_default_loader
 
 from iop import BusinessOperation
@@ -14,7 +14,7 @@ class FhirConverterOperation(BusinessOperation):
         # create a renderer for the input data type
         self.renderer = Hl7v2Renderer(
             env=make_environment(
-                loader=FileExtensionLoader(search_path=self.template_path),
+                loader=FileSystemLoader(search_path=self.template_path, ext=".liquid"),
                 additional_loaders=[hl7v2_default_loader],
             )
     )
