@@ -1,38 +1,38 @@
-    ZNspace "%SYS"
+    zn "%SYS"
     Do ##class(Security.Users).UnExpireUserPasswords("*")
 
-    Do ##class(Security.Services).Get("%Service_CallIn",.prop)
-    Set prop("Enabled")=1
-    Set prop("AutheEnabled")=48
-    Do ##class(Security.Services).Modify("%Service_CallIn",.prop)
+    do ##class(Security.Services).Get("%Service_CallIn",.prop)
+    set prop("Enabled")=1
+    set prop("AutheEnabled")=48
+    do ##class(Security.Services).Modify("%Service_CallIn",.prop)
 
     // Configure java gateway
-    Set mod = {}
-    Set mod.Name = "%Java Server FHIR"
-    Set mod.Type = "Java"
-    Set mod.UseSharedMemory = 1
-    Set mod.Port = 56666
-    Set mod.Resource = ""
-    Set mod.ClassPath = "/home/irisowner/java/lib:/home/irisowner/java/lib/validator_cli.jar"
-    Do $SYSTEM.external.createServer(mod)
+    set mod = {}
+    set mod.Name = "%Java Server FHIR"
+    set mod.Type = "Java"
+    set mod.UseSharedMemory = 1
+    set mod.Port = 56666
+    set mod.Resource = ""
+    set mod.ClassPath = "/home/irisowner/java/lib:/home/irisowner/java/lib/validator_cli.jar"
+    do $system.external.createServer(mod)
 
     Set ^|"HSSYS"|%SYS("HealthShare","NetworkHostName") = "webgateway"
 
     Set ^|"HSSYS"|%SYS("HealthShare","SSLAccess", "Active") = 1
     Set ^|"HSSYS"|%SYS("HealthShare","SSLAccess", "SSLConfig") = "BFC_SSL"
 
-    ZNspace "HSLIB"
+    zn "HSLIB"
 
-    Set namespace="FHIRSERVER"
+    set namespace="FHIRSERVER"
 
     //Install a Foundation namespace and change to it
     Do ##class(HS.Util.Installer.Foundation).Install(namespace)
-    ZNspace namespace
+    zn namespace
 
     // Install elements that are required for a FHIR-enabled namespace
     Do ##class(HS.FHIRServer.Installer).InstallNamespace()
 
-    Do $SYSTEM.OBJ.ImportDir("/irisdev/app/src/FHIRSERVER/cls/FHIR/Python","*.cls","cdk",.errors,1)
+    do $system.OBJ.ImportDir("/irisdev/app/src/FHIRSERVER/cls/FHIR/Python","*.cls","cdk",.errors,1)
 
     Set appKey = "/fhir/r4"
     Set strategyClass = "FHIR.Python.InteractionsStrategy"
@@ -41,19 +41,19 @@
     // Install an instance of a FHIR Service into the current namespace
     Do ##class(HS.FHIRServer.Installer).InstallInstance(appKey, strategyClass, metadataConfigKey,"",0)
 
-    Set strategy = ##class(HS.FHIRServer.API.InteractionsStrategy).GetStrategyForEndpoint(appKey)
-    Set config = strategy.GetServiceConfigData()
-    Set config.DebugMode = 4
-    Do strategy.SaveServiceConfigData(config)
+    set strategy = ##class(HS.FHIRServer.API.InteractionsStrategy).GetStrategyForEndpoint(appKey)
+    set config = strategy.GetServiceConfigData()
+    set config.DebugMode = 4
+    do strategy.SaveServiceConfigData(config)
 
-    ZNspace "HSLIB"
+    zn "HSLIB"
 
     Do ##class(HS.Util.Installer.Foundation).Install("EAI")
 
-    ZNspace "EAI"
+    zn "EAI"
 
-    ZWrite ##class(HS.FHIRServer.Installer).InteropAdapterConfig("/fhir")
+    zw ##class(HS.FHIRServer.Installer).InteropAdapterConfig("/fhir")
 
-    ZWrite ##class(Ens.Director).SetAutoStart("EAIPKG.FoundationProduction")
+    zw ##class(Ens.Director).SetAutoStart("EAIPKG.FoundationProduction")
 
     Halt

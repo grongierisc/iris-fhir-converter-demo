@@ -9,6 +9,11 @@ services:
       - webgateway
     environment:
       - ISC_CPF_MERGE_FILE=/irisdev/app/merge.cpf
+      - FHIR_SERVER_ENABLE=1
+      - FHIR_SERVER_VERSION=R4
+      - FHIR_SERVER_PATH=/fhir
+      - FHIR_CUSTOMIZATION_PATH=/irisdev/app/src/FHIRSERVER/python
+      - FHIR_CUSTOMIZATION_MODULE=custom_decorators
     hostname: iris
     networks:
       - iris-fhir-converter-demo

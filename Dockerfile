@@ -32,13 +32,6 @@ COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . /irisdev/app/
 # Install the requirements
 RUN pip3 install -r /irisdev/app/requirements.txt --break-system-packages
 
-RUN cd /irisdev/app/src/FHIRSERVER/java/ && \
-	mkdir -p /home/irisowner/java/lib && \
-	wget https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O /home/irisowner/java/lib/validator_cli.jar && \
-	javac /irisdev/app/src/FHIRSERVER/java/Iris/JavaValidatorFacade.java -classpath /home/irisowner/java/lib/validator_cli.jar -d /home/irisowner/java/lib
+ENTRYPOINT [ "/tini", "--", "/irisdev/app/docker-entrypoint.sh" ]
 
-RUN iris start IRIS \
-	&& iris session IRIS < /irisdev/app/iris.script \
-	&& iop --init \
-	&& iop -m /irisdev/app/src/EAI/python/EAI/settings.py \
-	&& iris stop IRIS quietly
+CMD [ "iris" ]

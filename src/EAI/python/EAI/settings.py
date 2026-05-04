@@ -16,6 +16,7 @@ PRODUCTIONS = [
 {
     "EAIPKG.FoundationProduction": {
         "@Name": "EAIPKG.FoundationProduction",
+        "@TestingEnabled": "true",
         "@LogGeneralTraceEvents": "false",
         "Description": "",
         "ActorPoolSize": "1",
