@@ -51,7 +51,7 @@ class FhirHttpOperation(BusinessOperation):
 
     def on_init(self):
         if not hasattr(self, 'url'):
-            self.url = 'https://webgatewayfhir/fhir/r5'
+            self.url = 'https://localhost/fhir/r4'
         if not hasattr(self, 'credential'):
             self.credential = 'SuperUser'
 

@@ -16,7 +16,7 @@
     if fhirVersion="" set fhirVersion="R4"
     // Get path to the FHIR from the environment variable FHIR_SERVER_PATH
     set fhirPath = $SYSTEM.Util.GetEnviron("FHIR_SERVER_PATH")
-    if fhirPath="" set fhirPath="/fhir"
+    if fhirPath="" set fhirPath="/fhir/r4"
     // Get the strategy class from the environment variable FHIR_SERVER_STRATEGY
     set strategy = $SYSTEM.Util.GetEnviron("FHIR_SERVER_STRATEGY")
     if strategy="" set strategy="FHIR.Python.InteractionsStrategy"
@@ -36,5 +36,13 @@
     zn "EAI"
 
     zw ##class(HS.FHIRServer.Installer).InteropAdapterConfig("/proxy/fhir")
+
+    set service = ##class(HS.Registry.Service.HTTP).%New()
+    set service.Name = "fhir"
+    set service.URL = "/fhir/r4/"
+    set service.Host = "webgateway"
+    set service.Port = 8081
+    set service.Type = "HTTP"
+    do service.%Save()
 
     halt

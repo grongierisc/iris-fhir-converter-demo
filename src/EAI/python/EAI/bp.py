@@ -26,7 +26,7 @@ class FhirConverterProcess(BusinessProcess):
 
         # send this to lorah
         fhir_request = FhirRequest(
-            url='https://webgateway:443/',
+            url='https://webgateway',
             resource='fhir/r4/',
             method='POST',
             data=response.output_data,
