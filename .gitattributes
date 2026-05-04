@@ -1,0 +1,10 @@
+*.sh text eol=lf
+*.cls text eol=lf
+*.cpf text eol=lf
+*.mac text eol=lf
+*.int text eol=lf
+*.py text eol=lf
+*.yml text eol=lf
+*.liquid text eol=lf
+*.md text eol=lf
+Dockerfil* text eol=lf
