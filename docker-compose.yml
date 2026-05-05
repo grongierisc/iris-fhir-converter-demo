@@ -2,7 +2,7 @@ services:
   iris:
     build:
       context: .
-      dockerfile: Dockerfile.new
+      dockerfile: Dockerfile
     container_name: iris
     depends_on:
       - webgateway

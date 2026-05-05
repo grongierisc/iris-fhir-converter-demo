@@ -3,35 +3,63 @@ FROM $IMAGE
 
 USER root
 
-# Update package and install sudo
-RUN apt-get update && apt-get install -y \
+# APP_HOME controls both the build-time filesystem layout and the runtime path used by all scripts.
+# It can be overridden at build time only: docker build --build-arg APP_HOME=/your/path .
+# Changing it at runtime (docker-compose, k8s) without rebuilding will break the container.
+ARG APP_HOME=/irisdev/app
+ENV APP_HOME=${APP_HOME} \
+	HOME="/home/${ISC_PACKAGE_MGRUSER}"
+
+# See:
+# For env vars: https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GIEUNIX_unattended_parameters
+# For image tags: https://containers.intersystems.com/contents/containers
+# https://github.com/intersystems-community/iris-docker-zpm-usage-template/blob/master/module.xml
+# TODO: https://github.com/grongierisc/iris-docker-multi-stage-script
+
+
+# Packages installation and configuration
+RUN set -eux; \
+	# ---- Install packages ----
+	apt-get update && \
+	apt-get install -y --no-install-recommends \
 	git \
-	vim \
-	sudo && \
-	/bin/echo -e ${ISC_PACKAGE_MGRUSER}\\tALL=\(ALL\)\\tNOPASSWD: ALL >> /etc/sudoers && \
-	sudo -u ${ISC_PACKAGE_MGRUSER} sudo echo enabled passwordless sudo-ing for ${ISC_PACKAGE_MGRUSER}
+	nano && \
+	# ---- Clean up apt cache ----
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists/*
 
 # Create local folder for the application
-RUN mkdir -p /irisdev/app
-RUN chown ${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} /irisdev/app
-# Change back the user to irisowner
+RUN mkdir -p "${APP_HOME}" && \
+	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" "${APP_HOME}"
+
 USER ${ISC_PACKAGE_MGRUSER}
 
-## Python stuff
-ENV IRISUSERNAME="SuperUser"
-ENV IRISPASSWORD="SYS"
-ENV IRISNAMESPACE="EAI"
-
-ENV PYTHON_PATH=/usr/irissys/bin/
-ENV LD_LIBRARY_PATH=${ISC_PACKAGE_INSTALLDIR}/bin
-ENV PATH="/home/irisowner/.local/bin:/usr/irissys/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/home/irisowner/bin"
+# Python stuff
+# Note:
+# 	PYTHONPATH — standard Python variable, tells the Python interpreter where to find modules
+# 	PYTHON_PATH — a custom IRIS variable, not a Python standard. It points to the directory containing the Python executable 
+ENV IRISUSERNAME="SuperUser" \
+	IRISPASSWORD="SYS" \
+	IRISNAMESPACE="EAI" \
+	PYTHONIOENCODING=UTF-8 \
+	PYTHONUNBUFFERED=1 \
+	PYTHON_PATH="${ISC_PACKAGE_INSTALLDIR}/bin/" \
+	LD_LIBRARY_PATH="${ISC_PACKAGE_INSTALLDIR}/bin:${LD_LIBRARY_PATH}" \
+	PATH="${HOME}/.local/bin:${ISC_PACKAGE_INSTALLDIR}/bin:${PATH}"
 
 # Copy the source code
-COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . /irisdev/app/
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . "${APP_HOME}/"
 
-# Install the requirements
-RUN pip3 install -r /irisdev/app/requirements.txt --break-system-packages
+# Install the requirements, force write into the system site-packages directory
+RUN pip3 install -r "${APP_HOME}/requirements.txt" \
+	--no-cache-dir \
+	--break-system-packages
 
-ENTRYPOINT [ "/tini", "--", "/irisdev/app/docker-entrypoint.sh" ]
+# Note: we need the entry point to be: /tini -- /irisdev/app/docker-entrypoint.sh
+# but we can't write ENTRYPOINT [ "/tini", "--", "${APP_HOME}/docker-entrypoint.sh" ]
+# because the JSON (exec) form bypasses the shell, so ${APP_HOME} is passed literally to tini.
+# The workaround is to invoke sh explicitly so the variable is expanded at runtime,
+# while still forwarding CMD args ("$@") to docker-entrypoint.sh.
+ENTRYPOINT ["/bin/sh", "-c", "exec /tini -- \"${APP_HOME}/docker-entrypoint.sh\" \"$@\"", "--"]
 
 CMD [ "iris" ]
