@@ -2,6 +2,3 @@
 deepdiff
 PyJWT
 requests
-pytest
-python-fhir-converter @ https://github.com/grongierisc/fhir-converter/releases/download/v0.5.3/python_fhir_converter-0.5.3-py3-none-any.whl
-iris-fhir-python-strategy @ git+https://github.com/grongierisc/iris-fhir-python-strategy@v0.2.0
