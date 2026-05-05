@@ -136,7 +136,7 @@ PRODUCTIONS = [
                 "Setting": {
                     "@Target": "Host",
                     "@Name": "%settings",
-                    "#text": f"template_path={os.getenv('TEMPLATE_PATH', '/irisdev/app/templates')}"
+                    "#text": f"template_path={os.getenv('TEMPLATE_PATH', os.environ['APP_HOME'] + '/templates')}"
                 }
             },
             {
@@ -163,12 +163,12 @@ PRODUCTIONS = [
                     {
                         "@Target": "Adapter",
                         "@Name": "FilePath",
-                        "#text": "/irisdev/app/misc/data/input/"
+                        "#text": f"{os.environ['APP_HOME']}/misc/data/input/"
                     },
                     {
                         "@Target": "Adapter",
                         "@Name": "ArchivePath",
-                        "#text": "/irisdev/app/misc/data/archive"
+                        "#text": f"{os.environ['APP_HOME']}/misc/data/archive"
                     },
                     {
                         "@Target": "Adapter",

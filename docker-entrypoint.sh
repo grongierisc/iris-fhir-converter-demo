@@ -2,6 +2,19 @@
 set -Eeo pipefail
 # TODO swap to -Eeuo pipefail above (after handling all potentially-unset variables)
 
+# APP_HOME must be set and must point to an existing directory.
+# It is defined as ENV in the Dockerfile and is baked into the image filesystem at build time.
+# Overriding it at runtime (e.g. via docker-compose or a k8s pod spec) without rebuilding
+# the image will break all path lookups — see README for details.
+if [ -z "${APP_HOME:-}" ]; then
+	printf >&2 'error: APP_HOME is not set. This variable is required and must match the path used at image build time.\n'
+	exit 1
+fi
+if [ ! -d "$APP_HOME" ]; then
+	printf >&2 'error: APP_HOME="%s" does not point to an existing directory.\n' "$APP_HOME"
+	exit 1
+fi
+
 INSTALLDIR=$ISC_PACKAGE_INSTALLDIR
 if [ ! -z "$ISC_DATA_DIRECTORY" ]; then
 	if [ -d $ISC_DATA_DIRECTORY ] || mkdir $ISC_DATA_DIRECTORY 2>/dev/null; then
@@ -176,7 +189,7 @@ _main() {
 		
 		docker_setup_env
 		
-		ls /irisdev/app/initdb.d/ > /dev/null
+		ls "$APP_HOME/initdb.d/" > /dev/null
 		
 		if [ "$IRIS_INIT" != "true" ]; then
 
@@ -186,15 +199,15 @@ _main() {
 
 			docker_setup_username
 
-			docker_process_init_files /irisdev/app/initdb.d/*
+			docker_process_init_files "$APP_HOME"/initdb.d/*
 		else
 			echo "Already initialized, initdb.d files will not be processed again"
 			# run init_iris.sh if it exists
-			if [ -f /irisdev/app/init_iris.sh ]; then
-				echo "Running /irisdev/app/init_iris.sh"
-				/irisdev/app/init_iris.sh
+			if [ -f "$APP_HOME/init_iris.sh" ]; then
+				echo "Running $APP_HOME/init_iris.sh"
+				"$APP_HOME/init_iris.sh"
 			else
-				echo "No /irisdev/app/init_iris.sh found, skipping"
+				echo "No $APP_HOME/init_iris.sh found, skipping"
 			fi
 		fi
 	else 
