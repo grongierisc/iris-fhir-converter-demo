@@ -1,4 +1,19 @@
-    zn "%SYS"
+    // Pre-flight checks
+    Set home = $SYSTEM.Util.GetEnviron("HOME")
+    Write:(home="") "[ FAIL ] HOME environment variable is not set"
+    Do:(home="") $SYSTEM.Process.Terminate(,1),h
+    Write "[  OK  ] HOME environment variable found and set to: "_home
+    Write:(##class(%File).DirectoryExists(home)'=1) "[ FAIL ] $HOME directory does not exist: "_home
+    Write "[  OK  ] HOME directory exist: "_home
+
+
+    Set appHome = $SYSTEM.Util.GetEnviron("APP_HOME")
+    If appHome = "" { Write "[ FAIL ] APP_HOME environment variable is not set", ! Halt }
+    If '##class(%File).DirectoryExists(appHome) { Write "[ FAIL ] APP_HOME directory does not exist: "_appHome, ! Halt }
+
+    Write "[ OK ] Pre-flight checks passed (HOME="_home_", APP_HOME="_appHome_")", !
+
+    ZNspace "%SYS"
     Do ##class(Security.Users).UnExpireUserPasswords("*")
 
     do ##class(Security.Services).Get("%Service_CallIn",.prop)
@@ -7,14 +22,14 @@
     do ##class(Security.Services).Modify("%Service_CallIn",.prop)
 
     // Configure java gateway
-    set mod = {}
-    set mod.Name = "%Java Server FHIR"
-    set mod.Type = "Java"
-    set mod.UseSharedMemory = 1
-    set mod.Port = 56666
-    set mod.Resource = ""
-    set mod.ClassPath = "/home/irisowner/java/lib:/home/irisowner/java/lib/validator_cli.jar"
-    do $system.external.createServer(mod)
+    Set mod = {}
+    Set mod.Name = "%Java Server FHIR"
+    Set mod.Type = "Java"
+    Set mod.UseSharedMemory = 1
+    Set mod.Port = 56666
+    Set mod.Resource = ""
+    Set mod.ClassPath = home_"/java/lib:"_home_"/java/lib/validator_cli.jar"
+    Do $SYSTEM.external.createServer(mod)
 
     Set ^|"HSSYS"|%SYS("HealthShare","NetworkHostName") = "webgateway"
 
@@ -32,7 +47,7 @@
     // Install elements that are required for a FHIR-enabled namespace
     Do ##class(HS.FHIRServer.Installer).InstallNamespace()
 
-    do $system.OBJ.ImportDir("/irisdev/app/src/FHIRSERVER/cls/FHIR/Python","*.cls","cdk",.errors,1)
+    Do $SYSTEM.OBJ.ImportDir(appHome_"/src/FHIRSERVER/cls/FHIR/Python","*.cls","cdk",.errors,1)
 
     Set appKey = "/fhir/r4"
     Set strategyClass = "FHIR.Python.InteractionsStrategy"

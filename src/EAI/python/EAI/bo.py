@@ -1,3 +1,5 @@
+import os
+
 import requests
 from liquid import FileSystemLoader
 from fhir_converter.renderers import Hl7v2Renderer, make_environment, hl7v2_default_loader
@@ -9,7 +11,13 @@ from msg import FhirConverterMessage, FhirConverterResponse, FhirRequest, FhirRe
 class FhirConverterOperation(BusinessOperation):
     def on_init(self):
         if not hasattr(self, 'template_path'):
-            self.template_path = '/irisdev/app/templates'
+            default_path = os.environ['APP_HOME'] + '/templates'
+            self.log_warning(
+                f'template_path was not set by the production configuration. '
+                f'Falling back to default: "{default_path}". '
+                f'Set the %settings "template_path" on this operation to suppress this warning.'
+            )
+            self.template_path = default_path
 
         # create a renderer for the input data type
         self.renderer = Hl7v2Renderer(

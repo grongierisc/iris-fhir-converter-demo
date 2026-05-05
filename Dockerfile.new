@@ -3,11 +3,16 @@ FROM $IMAGE
 
 USER root
 
-ENV APP_HOME=/irisdev/app
+# APP_HOME controls both the build-time filesystem layout and the runtime path used by all scripts.
+# It can be overridden at build time only: docker build --build-arg APP_HOME=/your/path .
+# Changing it at runtime (docker-compose, k8s) without rebuilding will break the container.
+ARG APP_HOME=/irisdev/app
+ENV APP_HOME=${APP_HOME} \
+	HOME="/home/${ISC_PACKAGE_MGRUSER}"
 
 # See:
 # For env vars: https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GIEUNIX_unattended_parameters
-# https://containers.intersystems.com/contents
+# For image tags: https://containers.intersystems.com/contents/containers
 # https://github.com/intersystems-community/iris-docker-zpm-usage-template/blob/master/module.xml
 # TODO: https://github.com/grongierisc/iris-docker-multi-stage-script
 
@@ -34,13 +39,13 @@ USER ${ISC_PACKAGE_MGRUSER}
 # 	PYTHONPATH — standard Python variable, tells the Python interpreter where to find modules
 # 	PYTHON_PATH — a custom IRIS variable, not a Python standard. It points to the directory containing the Python executable 
 ENV IRISUSERNAME="SuperUser" \
-    IRISPASSWORD="SYS" \
-    IRISNAMESPACE="EAI" \
-    PYTHONIOENCODING=UTF-8 \
-    PYTHONUNBUFFERED=1 \
-    PYTHON_PATH="${ISC_PACKAGE_INSTALLDIR}/bin/" \
-    LD_LIBRARY_PATH="${ISC_PACKAGE_INSTALLDIR}/bin:${LD_LIBRARY_PATH}" \
-    PATH="${HOME}/.local/bin:${ISC_PACKAGE_INSTALLDIR}/bin:${PATH}"
+	IRISPASSWORD="SYS" \
+	IRISNAMESPACE="EAI" \
+	PYTHONIOENCODING=UTF-8 \
+	PYTHONUNBUFFERED=1 \
+	PYTHON_PATH="${ISC_PACKAGE_INSTALLDIR}/bin/" \
+	LD_LIBRARY_PATH="${ISC_PACKAGE_INSTALLDIR}/bin:${LD_LIBRARY_PATH}" \
+	PATH="${HOME}/.local/bin:${ISC_PACKAGE_INSTALLDIR}/bin:${PATH}"
 
 # Copy the source code
 COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . "${APP_HOME}/"
@@ -50,17 +55,11 @@ RUN pip3 install -r "${APP_HOME}/requirements.txt" \
 	--no-cache-dir \
 	--break-system-packages
 
-WORKDIR "${APP_HOME}/src/FHIRSERVER/java/"
-RUN mkdir -p "${HOME}/java/lib" && \
-	wget -q https://github.com/hapifhir/org.hl7.fhir.core/releases/download/6.5.27/validator_cli.jar -O "${HOME}/java/lib/validator_cli.jar" && \
-	javac "${APP_HOME}/src/FHIRSERVER/java/Iris/JavaValidatorFacade.java" -classpath "${HOME}/java/lib/validator_cli.jar" -d "${HOME}/java/lib"
+# Note: we need the entry point to be: /tini -- /irisdev/app/docker-entrypoint.sh
+# but we can't write ENTRYPOINT [ "/tini", "--", "${APP_HOME}/docker-entrypoint.sh" ]
+# because the JSON (exec) form bypasses the shell, so ${APP_HOME} is passed literally to tini.
+# The workaround is to invoke sh explicitly so the variable is expanded at runtime,
+# while still forwarding CMD args ("$@") to docker-entrypoint.sh.
+ENTRYPOINT ["/bin/sh", "-c", "exec /tini -- \"${APP_HOME}/docker-entrypoint.sh\" \"$@\"", "--"]
 
-# RUN iris start ${ISC_PACKAGE_INSTANCENAME} quietly EmergencyId=sys,sys && \
-#     sh install.sh ${ISC_PACKAGE_INSTANCENAME} sys USER && \
-#     /bin/echo -e "sys\nsys\n" | iris stop ${ISC_PACKAGE_INSTANCENAME} quietly
-
-RUN iris start "${ISC_PACKAGE_INSTANCENAME}" \
-	&& iris session "${ISC_PACKAGE_INSTANCENAME}" < "${APP_HOME}/iris.script" \
-	&& iop --init \
-	&& iop -m "${APP_HOME}/src/EAI/python/EAI/settings.py" \
-	&& iris stop "${ISC_PACKAGE_INSTANCENAME}" quietly
+CMD [ "iris" ]

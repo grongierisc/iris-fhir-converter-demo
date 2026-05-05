@@ -1,18 +1,17 @@
-version: "3.8"
 services:
   iris:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.new
     container_name: iris
     depends_on:
       - webgateway
     environment:
-      - ISC_CPF_MERGE_FILE=/irisdev/app/merge.cpf
+      - ISC_CPF_MERGE_FILE=${APP_HOME}/merge.cpf
       - FHIR_SERVER_ENABLE=1
       - FHIR_SERVER_VERSION=R4
       - FHIR_SERVER_PATH=/fhir
-      - FHIR_CUSTOMIZATION_PATH=/irisdev/app/src/FHIRSERVER/python
+      - FHIR_CUSTOMIZATION_PATH=${APP_HOME}/src/FHIRSERVER/python
       - FHIR_CUSTOMIZATION_MODULE=custom_decorators
     hostname: iris
     networks:
@@ -21,11 +20,18 @@ services:
       - name: superserver-port
         target: 1972
         # host_ip: 0.0.0.0
-        # published: 9091
+        # published: 1972
+        protocol: tcp
+      # Webserver/management portal http://localhost:52773/csp/sys/UtilHome.csp
+      # http://localhost:8081/fhir/portal/patientlist.html
+      - name: Webserver/management portal
+        target: 52773
+        host_ip: 0.0.0.0
+        published: 52773
         protocol: tcp
     restart: always
     volumes:
-      - .:/irisdev/app
+      - .:${APP_HOME}
 
   webgateway:
     container_name: webgateway
