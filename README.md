@@ -4,7 +4,7 @@ This is a demo project for using InterSystems IRIS for Health as a FHIR Server a
 
 ## Useful Links
 
-- [FHIR Dashboard](http://localhost:8081/csp/fhir-management/index.html#/home)
+- [FHIR Dashboard](http://localhost:8081/csp/fhir-management/home)
 - [EAI Production](http://localhost:8081/csp/healthshare/eai/EnsPortal.ProductionConfig.zen)
 
 User name and password for both is `SuperUser` / `SYS`.
