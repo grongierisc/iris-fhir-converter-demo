@@ -22,8 +22,10 @@ RUN set -eux; \
 	# ---- Install packages ----
 	apt-get update && \
 	apt-get install -y --no-install-recommends \
+	curl \
 	git \
-	nano && \
+	nano \
+	ncdu && \
 	# ---- Clean up apt cache ----
 	apt-get clean && \
 	rm -rf /var/lib/apt/lists/*
@@ -54,6 +56,12 @@ COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . "${APP_HOME}/"
 RUN pip3 install -r "${APP_HOME}/requirements.txt" \
 	--no-cache-dir \
 	--break-system-packages
+
+	# Cleanup
+RUN rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/alerts.log"; \
+    rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/IRIS.WIJ"; \
+    rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/journal/*"; \
+    rm -fR /tmp/*
 
 # Note: we need the entry point to be: /tini -- /irisdev/app/docker-entrypoint.sh
 # but we can't write ENTRYPOINT [ "/tini", "--", "${APP_HOME}/docker-entrypoint.sh" ]
