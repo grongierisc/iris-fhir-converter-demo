@@ -1,12 +1,13 @@
 {
-    "recommendations": [
-        "charliermarsh.ruff",
-        "dakara.transformer",
-        "exiasr.hadolint",
-        "hediet.vscode-drawio",
-        "intersystems-community.objectscript-pack",
-        "ms-python.black-formatter",
-        "ms-python.isort",
-        "ms-python.python",
-    ]
+  "recommendations": [
+    "bruno-api-client.bruno",
+    "charliermarsh.ruff",
+    "dakara.transformer",
+    "exiasr.hadolint",
+    "hediet.vscode-drawio",
+    "intersystems-community.objectscript-pack",
+    "ms-python.black-formatter",
+    "ms-python.isort",
+    "ms-python.python"
+  ]
 }
