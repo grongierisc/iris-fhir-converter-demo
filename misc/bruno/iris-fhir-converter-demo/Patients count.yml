@@ -1,0 +1,34 @@
+info:
+  name: Patients count
+  type: http
+  seq: 1
+
+http:
+  method: GET
+  url: "{{http_base_url}}/fhir/Patient?_summary=count"
+  params:
+    - name: _summary
+      value: count
+      type: query
+  auth: inherit
+
+runtime:
+  actions:
+    - type: set-variable
+      phase: after-response
+      selector:
+        expression: |-
+          const total = res.getBody().total;
+          console.log("Patient count:", total);
+        method: jsonq
+      variable:
+        name: ""
+        scope: runtime
+
+settings:
+  encodeUrl: true
+  timeout: 0
+  followRedirects: true
+  maxRedirects: 5
+
+docs: Get number of patients are stored.
