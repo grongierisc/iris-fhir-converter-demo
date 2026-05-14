@@ -5,7 +5,7 @@ info:
 
 http:
   method: POST
-  url: "{{http_base_url}}/fhir/Patient"
+  url: "{{http_base_url}}/fhir/r4/Patient"
   headers:
     - name: Content-Type
       value: application/fhir+json
@@ -16,7 +16,6 @@ http:
     data: |-
       {
         "resourceType": "Patient",
-        "id": "deleteme. Should be server managed.",
         "identifier": [
           {
             "system": "http://your-org/patient-id",

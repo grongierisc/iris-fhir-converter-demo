@@ -5,7 +5,7 @@ info:
 
 http:
   method: GET
-  url: "{{http_base_url}}/fhir/Patient?_summary=count"
+  url: "{{http_base_url}}/fhir/r4/Patient?_summary=count"
   params:
     - name: _summary
       value: count
