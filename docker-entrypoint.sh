@@ -7,41 +7,83 @@ if [ ! -z "$ISC_DATA_DIRECTORY" ]; then
 	if [ -d $ISC_DATA_DIRECTORY ] || mkdir $ISC_DATA_DIRECTORY 2>/dev/null; then
 		INSTALLDIR=$ISC_DATA_DIRECTORY		
 	else
-		printf >&2 'Durable folder: %s does not exists, or cannot be created' "$ISC_DATA_DIRECTORY"
+		printf >&2 '[ FAIL ] Durable folder: %s does not exist or cannot be created\n' "$ISC_DATA_DIRECTORY"
 		exit 1
 	fi
 fi
 
+# Validate them all once
+_preflight_check() {
+    local required=(
+        APP_HOME
+        FHIR_SERVER_ENABLE
+        FHIR_SERVER_VERSION
+        FHIR_SERVER_PATH
+        FHIR_SERVER_STRATEGY
+    )
+    for var in "${required[@]}"; do
+        if [ -z "${!var:-}" ]; then
+            printf >&2 '[ FAIL ] %s is not set\n' "$var"
+            exit 1
+        fi
+        printf '[  OK  ] %s=%s\n' "$var" "${!var}"
+    done
+    if [ ! -d "$APP_HOME" ]; then
+        printf >&2 '[ FAIL ] APP_HOME="%s" does not point to an existing directory.\n' "$APP_HOME"
+        exit 1
+    fi
+}
+
 # usage: file_env VAR [DEFAULT]
 #    ie: file_env 'XYZ_DB_PASSWORD' 'example'
-# (will allow for "$XYZ_DB_PASSWORD_FILE" to fill in the value of
-#  "$XYZ_DB_PASSWORD" from a file, especially for Docker's secrets feature)
+#
+# Resolves the value of VAR from one of four sources (first match wins):
+#   1. VAR itself            (e.g. IRIS_PASSWORD)
+#   2. VAR without underscores (e.g. IRISPASSWORD)           — legacy/alternate naming
+#   3. VAR_FILE              (e.g. IRIS_PASSWORD_FILE)       — path to a file holding the value
+#   4. VAR_FILE without underscores (e.g. IRISPASSWORD_FILE) — same, alternate naming
+#   5. DEFAULT argument, or "" if not provided
+#
+# The _FILE variants support Docker secrets: secrets are mounted as files under
+# /run/secrets/, so callers can pass the file path instead of a plaintext value.
+#
+# After resolution, both VAR and its underscore-free form are exported with the
+# resolved value, and the _FILE variants are unset so the file path is not leaked
+# to child processes.
 file_env() {
 	local var="$1"
-	local var2="${var//_/}"
-	local fileVar="${var}_FILE"
-	local fileVar2="${var2}_FILE"
-	local def="${2:-}"
+	local var2="${var//_/}"         # e.g. IRIS_PASSWORD -> IRISPASSWORD
+	local fileVar="${var}_FILE"     # e.g. IRIS_PASSWORD_FILE
+	local fileVar2="${var2}_FILE"   # e.g. IRISPASSWORD_FILE
+	local def="${2:-}"              # optional default value, empty string if omitted
+
+	# Guard: setting both a direct value and a file reference is ambiguous — reject it
 	if [ "${!var:-}" ] && [ "${!fileVar:-}" ]; then
-		printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var" "$fileVar"
+		printf >&2 '[ FAIL ] both %s and %s are set (but are exclusive)\n' "$var" "$fileVar"
 		exit 1
 	fi
 	if [ "${!var2:-}" ] && [ "${!fileVar2:-}" ]; then
-		printf >&2 'error: both %s and %s are set (but are exclusive)\n' "$var2" "$fileVar2"
+		printf >&2 '[ FAIL ] both %s and %s are set (but are exclusive)\n' "$var2" "$fileVar2"
 		exit 1
 	fi
+
+	# Resolve value: direct env var takes precedence over file, default is the fallback
 	local val="$def"
 	if [ "${!var:-}" ]; then
 		val="${!var}"
 	elif [ "${!var2:-}" ]; then
 		val="${!var2}"
 	elif [ "${!fileVar:-}" ]; then
-		val="$(< "${!fileVar}")"
+		val="$(< "${!fileVar}")"    # read file contents into val
 	elif [ "${!fileVar2:-}" ]; then
 		val="$(< "${!fileVar2}")"
 	fi
+
+	# Export both forms so consumers using either naming convention get the value
 	export "$var"="$val"
 	export "$var2"="$val"
+
+	# Unset the _FILE vars so the file path is not visible to child processes
 	unset "$fileVar"
 	unset "$fileVar2"
 }
@@ -80,7 +122,14 @@ docker_process_init_files() {
 # Loads various settings that are used elsewhere in the script
 # This should be called before any other functions
 docker_setup_env() {
-	
+
+	# All vars the entire pipeline depends on
+	file_env 'APP_HOME'
+	file_env 'FHIR_SERVER_ENABLE'
+	file_env 'FHIR_SERVER_VERSION'
+	file_env 'FHIR_SERVER_PATH'
+	file_env 'FHIR_SERVER_STRATEGY'
+
 	file_env 'IRIS_USERNAME' '_SYSTEM'
 	file_env 'IRIS_PASSWORD'
 	file_env 'IRIS_NAMESPACE' ${IRIS_DATABASE} 'USER'
@@ -176,7 +225,7 @@ _main() {
 		
 		docker_setup_env
 		
-		ls /irisdev/app/initdb.d/ > /dev/null
+		ls "$APP_HOME/initdb.d/" > /dev/null
 		
 		if [ "$IRIS_INIT" != "true" ]; then
 
@@ -186,15 +235,15 @@ _main() {
 
 			docker_setup_username
 
-			docker_process_init_files /irisdev/app/initdb.d/*
+			docker_process_init_files "$APP_HOME"/initdb.d/*
 		else
-			echo "Already initialized, initdb.d files will not be processed again"
+			printf '[ INFO ] Already initialized, initdb.d files will not be processed again\n'
 			# run init_iris.sh if it exists
-			if [ -f /irisdev/app/init_iris.sh ]; then
-				echo "Running /irisdev/app/init_iris.sh"
-				/irisdev/app/init_iris.sh
+			if [ -f "$APP_HOME/init_iris.sh" ]; then
+				printf '[ INFO ] Running %s\n' "$APP_HOME/init_iris.sh"
+				"$APP_HOME/init_iris.sh"
 			else
-				echo "No /irisdev/app/init_iris.sh found, skipping"
+				printf '[ INFO ] No %s found, skipping\n' "$APP_HOME/init_iris.sh"
 			fi
 		fi
 	else 

@@ -1,3 +1,6 @@
+    // This script is intended to be called transitively from docker entrypoint script to validate 
+    // that necessary environment variables are set before proceeding with installation
+
     zn "HSLIB"
 
     set namespace="FHIRSERVER"
@@ -8,26 +11,18 @@
 
     // Install elements that are required for a FHIR-enabled namespace
     Do ##class(HS.FHIRServer.Installer).InstallNamespace()
-
-    //If a var env FHIR_SERVER_ENABLE is set to "1", enable the FHIR server
     set fhirServerEnable = $SYSTEM.Util.GetEnviron("FHIR_SERVER_ENABLE")
-    // Get the FHIR Version from the environment variable FHIR_SERVER_VERSION
-    set fhirVersion = $SYSTEM.Util.GetEnviron("FHIR_SERVER_VERSION")
-    if fhirVersion="" set fhirVersion="R4"
-    // Get path to the FHIR from the environment variable FHIR_SERVER_PATH
-    set fhirPath = $SYSTEM.Util.GetEnviron("FHIR_SERVER_PATH")
-    if fhirPath="" set fhirPath="/fhir/r4"
-    // Get the strategy class from the environment variable FHIR_SERVER_STRATEGY
-    set strategy = $SYSTEM.Util.GetEnviron("FHIR_SERVER_STRATEGY")
-    if strategy="" set strategy="FHIR.Python.InteractionsStrategy"
+    set fhirServerVersion = $SYSTEM.Util.GetEnviron("FHIR_SERVER_VERSION")
+    set fhirServerPath = $SYSTEM.Util.GetEnviron("FHIR_SERVER_PATH")
+    set fhirServerStrategy = $SYSTEM.Util.GetEnviron("FHIR_SERVER_STRATEGY")
 
-    // Does a fhir server configuration already exist?
-
-    zw:(fhirServerEnable) "Enabling FHIR server at path "_fhirPath_" with version "_fhirVersion_" and strategy "_strategy
-    Do:(fhirServerEnable) ##class(HS.FHIRServer.Installer).InstallInstance(fhirPath, strategy, fhirVersion, "", 0)
-    zw:(fhirServerEnable) "#### FHIR Server is enabled ####"
-    zw:(fhirServerEnable=0) "FHIR server not enabled. To enable, set environment variable FHIR_SERVER_ENABLE=1"
-
+    if fhirServerEnable {
+        write "[ INFO ] Enabling FHIR server at path "_fhirServerPath_" with version "_fhirServerVersion_" and strategy "_fhirServerStrategy, !
+        do ##class(HS.FHIRServer.Installer).InstallInstance(fhirServerPath, fhirServerStrategy, fhirServerVersion, "", 0)
+        write "[  OK  ] FHIR Server is enabled", !
+    } else {
+        write "[ WARN ] FHIR server not enabled. To enable, set environment variable FHIR_SERVER_ENABLE=1", !
+    }
 
     zn "HSLIB"
 
@@ -39,7 +34,7 @@
 
     set service = ##class(HS.Registry.Service.HTTP).%New()
     set service.Name = "fhir"
-    set service.URL = "/fhir/r4/"
+    set service.URL = fhirServerPath
     set service.Host = "webgateway"
     set service.Port = 8081
     set service.Type = "HTTP"

@@ -1,0 +1,42 @@
+opencollection: 1.0.0
+
+info:
+  name: iris-fhir-converter-demo
+config:
+  proxy:
+    inherit: true
+    config:
+      protocol: http
+      hostname: ""
+      port: ""
+      auth:
+        username: ""
+        password: ""
+      bypassProxy: ""
+
+request:
+  auth:
+    type: basic
+    username: "{{username}}"
+    password: "{{password}}"
+
+docs:
+  content: |+
+    This is a quick start [Bruno](https://www.usebruno.com/) collection to test the FHIR server.
+
+    - Install [Bruno](https://www.usebruno.com/) or its [VS Code extension](https://marketplace.visualstudio.com/items?itemName=bruno-api-client.bruno).
+    - Check that the variables in `environments/nominal.yml` file match your configuration.
+    - Use any of the provided requests:
+      - Patient count
+      - Patient
+      - First 10 patients
+
+
+
+  type: text/markdown
+bundled: false
+extensions:
+  bruno:
+    ignore:
+      - node_modules
+      - .git
