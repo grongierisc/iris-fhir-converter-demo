@@ -1,0 +1,10 @@
+repos:
+  - repo: local
+    hooks:
+      - id: check-app-home
+        name: Check APP_HOME sync (Dockerfile ↔ .env.example)
+        language: script
+        entry: scripts/check-app-home.sh
+        pass_filenames: false
+        # Only runs when one of these files is staged
+        files: ^(Dockerfile|\.env\.example)$
