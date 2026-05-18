@@ -20,6 +20,7 @@
       - [The exception: standalone scripts](#the-exception-standalone-scripts)
       - [Summary](#summary)
       - [APP\_HOME is special](#app_home-is-special)
+  - [License key file (if any)](#license-key-file-if-any)
 
 ## Useful Links
 
@@ -28,7 +29,7 @@
 
 User name and password for both is `SuperUser` / `SYS`.
 
-Note: the management portal is served via the webgateway on port 8081, not the private web server on port 52773.
+> **Note:** the management portal is served via the webgateway on port 8081, not the private web server on port 52773.
 The latter is intentionally not published in this project since it's unused (community image has PWS but we don't use it, licensed image 2023.2+ has no PWS at all).
 
 ## Running the project
@@ -167,3 +168,17 @@ But once built, the value is frozen — it cannot be changed without a rebuild.
 | `APP_HOME=` missing in .env.example   | skip (warn) | `[ FAIL ]` |
 | Values differ                         | `[ FAIL ]`  | `[ FAIL ]` |
 | All good                              | `[  OK  ]`  | `[  OK  ]` |
+
+## License key file (if any)
+
+Put your InterSystems IRIS license key file in the `key` folder with the name format `iris.<arch>.key` (e.g. `iris.x86_64.key` or `iris.aarch64.key`) before building the image.
+The Dockerfile will copy it to the correct location in the image with the name `iris.key` so that IRIS can find it at runtime.
+
+> **Note:** the community edition of IRIS for Health does not require a license key file, so this step is only necessary if you are using a licensed edition. Using a licensed key with a community image will show a similar message:
+>
+> ```bash
+> [INFO] Starting InterSystems IRIS instance IRIS...
+> [INFO] log: 05/18/26-12:36:40:499 (410) 2 [Generic.Event] This version of InterSystems IRIS will only accept a Community license key, iris.key will be ignored.
+> ```
+
+See [Managing InterSystems IRIS Licensing](https://docs.intersystems.com/irislatest/csp/docbook/DocBook.UI.Page.cls?KEY=GSA_LICENSE).
