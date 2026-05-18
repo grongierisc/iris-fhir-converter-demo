@@ -16,13 +16,11 @@
     set fhirServerPath = $SYSTEM.Util.GetEnviron("FHIR_SERVER_PATH")
     set fhirServerStrategy = $SYSTEM.Util.GetEnviron("FHIR_SERVER_STRATEGY")
 
-    if fhirServerEnable {
-        write "[ INFO ] Enabling FHIR server at path "_fhirServerPath_" with version "_fhirServerVersion_" and strategy "_fhirServerStrategy, !
-        do ##class(HS.FHIRServer.Installer).InstallInstance(fhirServerPath, fhirServerStrategy, fhirServerVersion, "", 0)
-        write "[  OK  ] FHIR Server is enabled", !
-    } else {
-        write "[ WARN ] FHIR server not enabled. To enable, set environment variable FHIR_SERVER_ENABLE=1", !
-    }
+    write:(fhirServerEnable) "[ INFO ] Enabling FHIR server at path "_fhirServerPath_" with version "_fhirServerVersion_" and strategy "_fhirServerStrategy, !
+    do:(fhirServerEnable) ##class(HS.FHIRServer.Installer).InstallInstance(fhirServerPath, fhirServerStrategy, fhirServerVersion, "", 0)
+    write:(fhirServerEnable) "[  OK  ] FHIR Server is enabled", !
+
+    write:('fhirServerEnable) "[ WARN ] FHIR server not enabled. To enable, set environment variable FHIR_SERVER_ENABLE=1", !
 
     zn "HSLIB"
 
