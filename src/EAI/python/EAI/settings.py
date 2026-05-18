@@ -140,7 +140,7 @@ PRODUCTIONS = [
                 }
             },
             {
-                "@Name": "IRIS.Hl7v2FileService",
+                "@Name": "IRIS.HL7v2FileService",
                 "@Category": "",
                 "@ClassName": "EnsLib.HL7.Service.FileService",
                 "@PoolSize": "1",
