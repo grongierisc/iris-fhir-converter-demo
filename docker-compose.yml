@@ -23,13 +23,12 @@ services:
         # host_ip: 0.0.0.0
         # published: 1972
         protocol: tcp
-      # Webserver/management portal http://localhost:52773/csp/sys/UtilHome.csp
+      # Management portal is served via webgateway (port 8081), not the private web server.
+      # http://localhost:8081/csp/sys/UtilHome.csp
       # http://localhost:8081/fhir/portal/patientlist.html
-      - name: Webserver/management portal
-        target: 52773
-        host_ip: 0.0.0.0
-        published: 52773
-        protocol: tcp
+      # Port 52773 (private web server) is intentionally not published:
+      #   - community image: PWS runs internally but is unused
+      #   - licensed image 2023.2+: no PWS at all
     restart: always
     volumes:
       - .:${APP_HOME}

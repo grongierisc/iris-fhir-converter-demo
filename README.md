@@ -28,6 +28,9 @@
 
 User name and password for both is `SuperUser` / `SYS`.
 
+Note: the management portal is served via the webgateway on port 8081, not the private web server on port 52773.
+The latter is intentionally not published in this project since it's unused (community image has PWS but we don't use it, licensed image 2023.2+ has no PWS at all).
+
 ## Running the project
 
 1. Make sure you have either [Docker Desktop](https://www.docker.com/products/docker-desktop/) or [Podman Desktop](https://podman-desktop.io/) installed and running.
