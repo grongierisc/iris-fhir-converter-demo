@@ -43,4 +43,9 @@
     set service.Type = "HTTP"
     do service.%Save()
 
+    set tSc = ##class(Ens.Director).StartProduction("EAIPKG.FoundationProduction")
+    write:(tSc'=1) "[ FAIL ] Start production: "_$System.Status.GetErrorText(tSc)
+    do:(tSc'=1) $SYSTEM.Process.Terminate(,1),h
+    write "[ OK ] Start production"
+
     halt
