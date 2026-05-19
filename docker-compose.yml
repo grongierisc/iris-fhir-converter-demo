@@ -29,6 +29,11 @@ services:
       # Port 52773 (private web server) is intentionally not published:
       #   - community image: PWS runs internally but is unused
       #   - licensed image 2023.2+: no PWS at all
+      - name: hl7-tcp-inbound
+        target: 62115
+        host_ip: 0.0.0.0
+        published: 62115
+        protocol: tcp
     restart: always
     volumes:
       - .:${APP_HOME}

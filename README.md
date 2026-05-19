@@ -1,7 +1,12 @@
 
 # iris-fhir-converter-demo
 
-> This is a demo project for using InterSystems IRIS for Health as a FHIR Server and FHIR Converter.
+This project demonstrates an end-to-end HL7 v2 → FHIR pipeline using InterSystems IRIS for Health.
+Incoming HL7 v2 messages (received over TCP or file) are converted into FHIR Bundles and stored in the embedded FHIR Server.
+
+The conversion layer is built on top of — and extends — [chaseastewart/fhir-converter](https://github.com/chaseastewart/fhir-converter),
+a Python port of [Microsoft's FHIR-Converter](https://github.com/microsoft/FHIR-Converter) (a C#/.NET utility that translates
+legacy health formats — HL7v2, C-CDA, JSON — into FHIR R4 using Liquid templates).
 
 ## Table of Contents
 
@@ -9,6 +14,22 @@
   - [Table of Contents](#table-of-contents)
   - [Useful Links](#useful-links)
   - [Running the project](#running-the-project)
+  - [FHIR Server](#fhir-server)
+    - [How it is set up](#how-it-is-set-up)
+  - [EAI Production](#eai-production)
+    - [Architecture](#architecture)
+      - [Conversion HL7 v2 → FHIR](#conversion-hl7-v2--fhir)
+      - [FHIR storage](#fhir-storage)
+      - [Key components](#key-components)
+    - [Sending HL7 v2 messages](#sending-hl7-v2-messages)
+      - [Via file drop](#via-file-drop)
+      - [Via TCP](#via-tcp)
+    - [Inspecting messages conversion in the Message Viewer](#inspecting-messages-conversion-in-the-message-viewer)
+    - [Exploring the FHIR Server](#exploring-the-fhir-server)
+      - [FHIR Dashboard](#fhir-dashboard)
+      - [Querying the FHIR Server](#querying-the-fhir-server)
+        - [curl](#curl)
+        - [Bruno](#bruno)
   - [Environment variables principle and instructions](#environment-variables-principle-and-instructions)
     - [The three different mechanisms — easy to confuse](#the-three-different-mechanisms--easy-to-confuse)
     - [`env_file` vs `environment` precedence](#env_file-vs-environment-precedence)
@@ -49,6 +70,163 @@ The latter is intentionally not published in this project since it's unused (com
 5. Wait for the container to start. This may take a few minutes as it needs to build the image and initialize the IRIS instance.
 6. Once the container is running, you can access the FHIR Dashboard and EAI Production using the links provided above.
 7. Copy HL7 v2 messages into the `input` folder. The EAI Production is configured to monitor this folder and will process any new files it finds, converting them to FHIR resources and storing them in the FHIR Server.
+
+## FHIR Server
+
+An FHIR R4 server is embedded directly in the IRIS for Health instance. It is provisioned at startup — no separate service is needed.
+
+![FHIR Server Management](.github/images/screenshots/intersystems_iris_for_health_fhir_server_management.png)
+
+### How it is set up
+
+Provisioning runs inside [`initdb.d/iris.script`](initdb.d/iris.script) and is driven mostly by environment variables:
+
+| Variable               | Purpose                                                          |
+|------------------------|------------------------------------------------------------------|
+| `FHIR_SERVER_ENABLE`   | Set to `1` to enable the server (skip if `0`)                    |
+| `FHIR_SERVER_VERSION`  | FHIR version to install (e.g. `R4`)                              |
+| `FHIR_SERVER_PATH`     | URL path under which the server is mounted (e.g. `/fhir/r4`)     |
+| `FHIR_SERVER_STRATEGY` | Storage strategy class (e.g. `FHIR.Python.InteractionsStrategy`) |
+
+The script:
+
+1. Creates a dedicated `FHIRSERVER` namespace and installs the FHIR foundation packages into it.
+2. Calls `HS.FHIRServer.Installer.InstallInstance` with the values above to mount the FHIR endpoint.
+3. Registers a named HTTP service entry (`fhir`) in the IRIS service registry, pointing to the webgateway on port `8081` — this is the address the EAI production uses to POST converted resources.
+
+See [Installing a New FHIR Server](https://docs.intersystems.com/irisforhealthlatest/csp/docbook/DocBook.UI.Page.cls?KEY=HXFHIRINS_server_install_new) for more details on the installation process and available configuration options.
+
+The FHIR server is then reachable through the webgateway at:
+
+```text
+http://localhost:8081/fhir/r4
+```
+
+A management UI (FHIR Dashboard) is available at the link in [Useful Links](#useful-links).
+
+## EAI Production
+
+The EAI (Enterprise Application Integration) production is the orchestration layer that ties inbound HL7 v2 traffic to the FHIR server. It runs in its own `EAI` namespace and is started automatically at container initialisation.
+> TODO: check that the production is set to auto-start.
+
+### Architecture
+
+> **Note:** Same architecture is shown in both standard and new UI screenshots.
+
+#### Conversion HL7 v2 → FHIR
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│ EAI Production                                                  │
+│                                                                 │
+│  IRIS.HL7v2FileService   ─┐                                     │
+│  (EnsLib.HL7.Service      ├──► Python.FhirConverterProcess      │
+│   .FileService)           │    (bp.py)                          │
+│                           │       │                             │
+│  IRIS.HL7v2TCPService   ──┘       │ FhirConverterMessage        │
+│  (EnsLib.HL7.Service              ▼                             │
+│   .TCPService, :62115)     Python.FhirConverterOperation        │
+│                            (bo.py — Hl7v2Renderer)              │
+│                                   │                             │
+│                                   │ FHIR Bundle (JSON)          │
+│                                   ▼                             │
+│                            FHIR_PYTHON_HTTP  ──► FHIR Server    │
+│                            (FhirHttpOperation)   /fhir/r4       │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+![EAI Production standard UI](.github/images/screenshots/iris_fhir_converter_demo_eai_production_converter.gif)
+
+#### FHIR storage
+
+See [Accepting FHIR Requests](https://docs.intersystems.com/irisforhealth20261/csp/docbook/DocBook.UI.Page.cls?KEY=HXFHIRPROD_production#HXFHIRPROD_production_use).
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                                                                 │
+│  InteropService ──► FHIR_MAIN ──► FHIR_MAIN_HTTP                │
+│  (FHIR proxy for       (FhirMainProcess)   (HS.FHIRServer       │
+│   direct FHIR calls)                        .Interop            │
+│                                             .HTTPOperation)     │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+![EAI Production standard UI](.github/images/screenshots/iris_fhir_converter_demo_eai_production_fhir_server.gif)
+
+#### Key components
+
+| Component                       | Class                                                     | Role                                                                                                                           |
+|---------------------------------|-----------------------------------------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| `IRIS.HL7v2FileService`         | `EnsLib.HL7.Service.FileService`                          | Watches `misc/data/input/` for `*.hl7` files; archives processed files to `misc/data/archive/`                                 |
+| `IRIS.HL7v2TCPService`          | `EnsLib.HL7.Service.TCPService`                           | Listens on TCP port `62115` for inbound MLLP-framed HL7 v2 messages                                                            |
+| `Python.FhirConverterProcess`   | `bp.FhirConverterProcess`                                 | Receives an HL7 message from either service, selects the right Liquid template, delegates conversion                           |
+| `Python.FhirConverterOperation` | `bo.FhirConverterOperation`                               | Runs the `Hl7v2Renderer` from `fhir_converter` against the Liquid templates in `templates/`; returns a FHIR Bundle JSON string |
+| `FHIR_PYTHON_HTTP`              | `bo.FhirHttpOperation`                                    | POSTs the resulting FHIR Bundle to `https://webgateway/fhir/r4`                                                                |
+| `FHIR_MAIN` / `FHIR_MAIN_HTTP`  | `FhirMainProcess` / `HS.FHIRServer.Interop.HTTPOperation` | Handles direct FHIR requests arriving through the IRIS interop proxy                                                           |
+
+The Liquid templates used for conversion live in the [`templates/`](templates/) directory and follow the same conventions as the Microsoft FHIR-Converter templates.
+
+### Sending HL7 v2 messages
+
+#### Via file drop
+
+Place any `*.hl7` file in the `misc/data/input/` directory inside the container (or mount it as a volume). See samples in `misc/data/hl7v2`. The `IRIS.HL7v2FileService` polls that directory and picks up new files automatically.
+
+Processed files are moved to `misc/data/archive/`.
+
+#### Via TCP
+
+Send an MLLP-framed HL7 v2 message to port `62115` using any MLLP-capable client. The `.vscode/extensions.json` actually includes an [HL7 extension](https://marketplace.visualstudio.com/items?itemName=pbrooks.hl7), which provides a convenient UI for sending test messages directly from VS Code:
+
+![Send HL7 message over TCP right from VS Code](.github/images/screenshots/send_hl7_message_over_tcp_with_vs_code_extension.gif)
+
+### Inspecting messages conversion in the Message Viewer
+
+After sending both samples messages, open the [EAI Production](http://localhost:8081/csp/healthshare/eai/EnsPortal.ProductionConfig.zen) in your browser.
+
+![Check TCP and file HL7 messages in Message Viewer](.github/images/screenshots/check_tcp_and_file_hl7_messages_in_viewer.gif)
+
+Once a message has been processed, the resulting FHIR resources are stored in the embedded FHIR server and can be queried directly
+
+### Exploring the FHIR Server
+
+Sending the two sample HL7 v2 messages results in the creation of two Patient resources (amongst other related resources) in the FHIR server. You can query them using the FHIR API or explore them in the FHIR Dashboard.
+
+#### FHIR Dashboard
+
+![Check two patients in FHIR Server Management](.github/images/screenshots/check_two_patients_in_fhir_server_management.gif)
+
+#### Querying the FHIR Server
+
+##### curl
+
+The FHIR server can also be queried directly using the API. For example, to count the patients, you can use `curl`:
+
+```bash
+➜  iris-fhir-converter-demo git:(main) ✗ curl --request GET \
+  --url 'http://localhost:8081/fhir/r4/Patient?_summary=count' \
+  --header 'authorization: Basic U3VwZXJVc2VyOlNZUw=='  | jq .
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100   223  100   223    0     0  14029      0 --:--:-- --:--:-- --:--:-- 14866
+{
+  "resourceType": "Bundle",
+  "id": "b535281b-537b-11f1-9a0c-e2c9613486d7",
+  "type": "searchset",
+  "timestamp": "2026-05-19T12:10:21Z",
+  "total": 2,
+  "link": [
+    {
+      "relation": "self",
+      "url": "http://localhost:8081/fhir/r4/Patient?_summary=count"
+    }
+  ]
+}
+```
+
+##### Bruno
+
+![Bruno collection](.github/images/screenshots/bruno_collection_get_patients_count.png)
 
 ## Environment variables principle and instructions
 

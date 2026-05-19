@@ -176,6 +176,34 @@ PRODUCTIONS = [
                         "#text": "*.hl7"
                     }
                 ]
+            },
+            {
+                "@Name": "IRIS.HL7v2TCPService",
+                "@Category": "",
+                "@ClassName": "EnsLib.HL7.Service.TCPService",
+                "@PoolSize": "1",
+                "@Enabled": "true",
+                "@Foreground": "false",
+                "@Comment": "",
+                "@LogTraceEvents": "false",
+                "@Schedule": "",
+                "Setting": [
+                    {
+                        "@Target": "Host",
+                        "@Name": "MessageSchemaCategory",
+                        "#text": "2.8"
+                    },
+                    {
+                        "@Target": "Host",
+                        "@Name": "TargetConfigNames",
+                        "#text": "Python.FhirConverterProcess"
+                    },
+                    {
+                        "@Target": "Adapter",
+                        "@Name": "Port",
+                        "#text": "62115"
+                    }
+                ]
             }
         ]
     }

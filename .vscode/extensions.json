@@ -8,6 +8,7 @@
     "intersystems-community.objectscript-pack",
     "ms-python.black-formatter",
     "ms-python.isort",
-    "ms-python.python"
+    "ms-python.python",
+    "pbrooks.hl7"
   ]
 }
