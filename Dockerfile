@@ -34,6 +34,9 @@ RUN set -eux; \
 RUN mkdir -p "${APP_HOME}" && \
 	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" "${APP_HOME}"
 
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} ./key/iris.*.key /tmp/
+RUN cp "/tmp/iris.$(uname -m).key" "${ISC_PACKAGE_INSTALLDIR}/mgr/iris.key"
+
 USER ${ISC_PACKAGE_MGRUSER}
 
 # Python stuff
@@ -61,7 +64,14 @@ RUN pip3 install -r "${APP_HOME}/requirements.txt" \
 RUN rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/alerts.log"; \
     rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/IRIS.WIJ"; \
     rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/journal/*"; \
+    rm -f "${ISC_PACKAGE_INSTALLDIR}/mgr/iristemp/IRIS.DAT"; \
     rm -fR /tmp/*
+
+# Expose ports
+# 52773  — IRIS web gateway (HTTP) intentionally not in EXPOSE list because we use the webgateway
+# 1972   — IRIS superserver (native protocol)
+# 62115  — HL7 TCP inbound connector
+EXPOSE 1972 62115
 
 # Note: we need the entry point to be: /tini -- /irisdev/app/docker-entrypoint.sh
 # but we can't write ENTRYPOINT [ "/tini", "--", "${APP_HOME}/docker-entrypoint.sh" ]

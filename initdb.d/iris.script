@@ -1,6 +1,11 @@
     // This script is intended to be called transitively from docker entrypoint script to validate 
     // that necessary environment variables are set before proceeding with installation
 
+    // When iris session runs non-interactively (stdin from a file, no TTY), the principal
+    // device is the IRIS console log rather than the process's stdout. Explicitly opening
+    // /dev/fd/1 and switching to it ensures WRITE output reaches Docker logs.
+    open "/dev/fd/1":"W" use "/dev/fd/1"
+
     zn "HSLIB"
 
     set namespace="FHIRSERVER"
@@ -37,5 +42,10 @@
     set service.Port = 8081
     set service.Type = "HTTP"
     do service.%Save()
+
+    set tSc = ##class(Ens.Director).StartProduction("EAIPKG.FoundationProduction")
+    write:(tSc'=1) "[ FAIL ] Start production: "_$System.Status.GetErrorText(tSc)
+    do:(tSc'=1) $SYSTEM.Process.Terminate(,1),h
+    write "[ OK ] Start production"
 
     halt
