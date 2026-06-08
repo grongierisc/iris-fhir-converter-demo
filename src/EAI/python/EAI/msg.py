@@ -1,4 +1,4 @@
-from grongier.pex import Message
+from iop import Message
 from dataclasses import dataclass
 from obj import PermissionObj
 from typing import List

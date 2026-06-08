@@ -34,8 +34,9 @@ RUN set -eux; \
 RUN mkdir -p "${APP_HOME}" && \
 	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" "${APP_HOME}"
 
-COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} ./key/iris.*.key /tmp/
-RUN cp "/tmp/iris.$(uname -m).key" "${ISC_PACKAGE_INSTALLDIR}/mgr/iris.key"
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} ./key/ /tmp/key/
+RUN key="/tmp/key/iris.$(uname -m).key"; \
+    [ -f "$key" ] && cp "$key" "${ISC_PACKAGE_INSTALLDIR}/mgr/iris.key" || true
 
 USER ${ISC_PACKAGE_MGRUSER}
 
