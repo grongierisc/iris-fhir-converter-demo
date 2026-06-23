@@ -2,7 +2,7 @@
     "python.testing.unittestEnabled": false,
     "python.testing.pytestEnabled": true,
     "objectscript.conn": {
-        "active": false,
+        "active": true,
         "host": "localhost",
         "port": 8081,
         "username": "SuperUser",
@@ -13,4 +13,5 @@
     "java.project.referencedLibraries": [
         "./src/FHIRSERVER/java/lib/validator_cli.jar"
     ],
+    "fhirConverter.pythonCli": "/Users/grongier/git/iris-fhir-converter-demo/.venv/bin/fhir_converter_hl7v2"
 }

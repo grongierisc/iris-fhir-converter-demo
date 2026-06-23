@@ -32,7 +32,7 @@ RUN set -eux; \
 
 # Create local folder for the application
 RUN mkdir -p "${APP_HOME}" && \
-	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" "${APP_HOME}"
+	chown -R "${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP}" "${APP_HOME:-/irisdev/app}"
 
 COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} ./key/ /tmp/key/
 RUN key="/tmp/key/iris.$(uname -m).key"; \
@@ -54,10 +54,10 @@ ENV IRISUSERNAME="SuperUser" \
 	PATH="${HOME}/.local/bin:${ISC_PACKAGE_INSTALLDIR}/bin:${PATH}"
 
 # Copy the source code
-COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . "${APP_HOME}/"
+COPY --chown=${ISC_PACKAGE_MGRUSER}:${ISC_PACKAGE_IRISGROUP} . "${APP_HOME:-/irisdev/app}/"
 
 # Install the requirements, force write into the system site-packages directory
-RUN pip3 install -r "${APP_HOME}/requirements.txt" \
+RUN pip3 install -r "${APP_HOME:-/irisdev/app}/requirements.txt" \
 	--no-cache-dir \
 	--break-system-packages
 
@@ -79,6 +79,6 @@ EXPOSE 1972 62115
 # because the JSON (exec) form bypasses the shell, so ${APP_HOME} is passed literally to tini.
 # The workaround is to invoke sh explicitly so the variable is expanded at runtime,
 # while still forwarding CMD args ("$@") to docker-entrypoint.sh.
-ENTRYPOINT ["/bin/sh", "-c", "exec /tini -- \"${APP_HOME}/docker-entrypoint.sh\" \"$@\"", "--"]
+ENTRYPOINT ["/bin/sh", "-c", "exec /tini -- \"${APP_HOME:-/irisdev/app}/docker-entrypoint.sh\" \"$@\"", "--"]
 
 CMD [ "iris" ]

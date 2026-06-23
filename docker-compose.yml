@@ -36,7 +36,7 @@ services:
         protocol: tcp
     restart: always
     volumes:
-      - .:${APP_HOME}
+      - .:${APP_HOME:-/irisdev/app}
 
   webgateway:
     container_name: webgateway
