@@ -152,19 +152,42 @@ class TestFhirConverterProcess:
         # Verify template was normalized to ADT_CUSTOM
         assert request.root_template == 'ADT_CUSTOM'
 
-        # Verify send_request_sync was called twice (converter + FHIR)
-        assert process.send_request_sync.call_count == 2
+        # Verify send_request_sync was called 3 times (converter + file + FHIR)
+        assert process.send_request_sync.call_count == 3
 
         # Verify first call: convert HL7 to FHIR
         first_call = process.send_request_sync.call_args_list[0]
         assert first_call[0][0] == process.converter_target
         assert isinstance(first_call[0][1], FhirConverterMessage)
 
-        # Verify second call: post to FHIR
+        # Verify second call: drop converted file
         second_call = process.send_request_sync.call_args_list[1]
-        assert second_call[0][0] == process.fhir_target
-        fhir_request = second_call[0][1]
+        assert second_call[0][0] == process.file_target
+        assert isinstance(second_call[0][1], FhirConverterResponse)
+
+        # Verify third call: post to FHIR
+        third_call = process.send_request_sync.call_args_list[2]
+        assert third_call[0][0] == process.fhir_target
+        fhir_request = third_call[0][1]
         assert isinstance(fhir_request, FhirRequest)
+
+    def test_submit_sends_file_drop_operation(self, process, converter_response):
+        """Test converted payload is routed to dedicated file-drop operation."""
+        request = FhirConverterMessage(
+            input_filename='drop_test.hl7',
+            input_data='MSH|...',
+            input_data_type='Hl7v2',
+            root_template='ADT_CUSTOM'
+        )
+        process.send_request_sync.return_value = converter_response
+
+        process.submit_fhir_converter_message(request)
+
+        second_call = process.send_request_sync.call_args_list[1]
+        assert second_call[0][0] == process.file_target
+        dropped_msg = second_call[0][1]
+        assert isinstance(dropped_msg, FhirConverterResponse)
+        assert dropped_msg.output_filename == 'drop_test.json'
 
     def test_submit_normalizes_adtz99_to_adtcustom(self, process, converter_response):
         """Test that ADT_Z99 template is normalized to ADT_CUSTOM."""
@@ -254,7 +277,7 @@ class TestFhirConverterProcess:
         process.submit_fhir_converter_message(request)
 
         # Verify FHIR request parameters
-        fhir_call = process.send_request_sync.call_args_list[1]
+        fhir_call = process.send_request_sync.call_args_list[2]
         fhir_request = fhir_call[0][1]
 
         assert fhir_request.url == 'https://webgateway'
@@ -311,6 +334,7 @@ class TestFhirConverterProcess:
         # First call succeeds (converter), second call fails (FHIR POST)
         process.send_request_sync.side_effect = [
             converter_response,
+            Mock(status=200),
             RuntimeError('FHIR server error')
         ]
 
@@ -390,12 +414,13 @@ class TestFhirConverterProcess:
             process.submit_fhir_converter_message(msg)
 
         # Verify all messages processed
-        assert process.send_request_sync.call_count == 6  # 2 calls per message
+        assert process.send_request_sync.call_count == 9  # 3 calls per message
 
     def test_target_attributes_exist(self, process):
         """Test that target attributes are properly initialized."""
         # Verify target attributes exist
         assert hasattr(process, 'converter_target')
+        assert hasattr(process, 'file_target')
         assert hasattr(process, 'fhir_target')
 
     def test_process_inheritance(self):
@@ -457,4 +482,4 @@ class TestFhirConverterProcess:
         process.submit_fhir_converter_message(request)
 
         # Verify processing succeeded
-        assert process.send_request_sync.call_count == 2
+        assert process.send_request_sync.call_count == 3

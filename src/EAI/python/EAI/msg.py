@@ -26,6 +26,13 @@ class FhirConverterResponse(Message):
 
 
 @dataclass
+class FhirFileDropResponse(Message):
+    """Response containing the created file path for dropped FHIR payload."""
+    status: int
+    file_path: str
+
+
+@dataclass
 class FhirRequest(Message):
     """HTTP request to FHIR server."""
     url: Optional[str] = None

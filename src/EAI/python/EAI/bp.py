@@ -4,8 +4,6 @@ import os
 
 from iop import BusinessProcess, target
 import iris
-import jwt
-import json
 
 from .msg import FhirRequest, FhirConverterMessage, FhirConverterResponse
 
@@ -14,6 +12,7 @@ class FhirConverterProcess(BusinessProcess):
     """Routes HL7v2 messages through FHIR conversion and submission."""
 
     converter_target = target()
+    file_target = target()
     fhir_target = target()
 
     def on_enslib_message(self, request: 'iris.EnsLib.HL7.Message') -> None:
@@ -55,6 +54,9 @@ class FhirConverterProcess(BusinessProcess):
         )
         response.output_filename = request.input_filename.replace('.hl7', '.json')
         self.log_info(f'Converted {request.input_filename} → {response.output_filename}')
+
+        # Drop converted payload to misc/data/fhir via dedicated operation.
+        self.send_request_sync(self.file_target, response)
 
         # Post result to FHIR server
         fhir_request = FhirRequest(

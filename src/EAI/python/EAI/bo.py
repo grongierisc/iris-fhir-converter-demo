@@ -1,6 +1,7 @@
 """Business Operations for FHIR conversion and HTTP interactions."""
 
 import os
+from pathlib import Path
 
 import requests
 from liquid import FileSystemLoader
@@ -11,6 +12,7 @@ from iop import BusinessOperation
 from .msg import (
     FhirConverterMessage,
     FhirConverterResponse,
+    FhirFileDropResponse,
     FhirRequest,
     FhirResponse
 )
@@ -134,6 +136,32 @@ class RandomRestOperation(BusinessOperation):
         except Exception as e:
             self.log_error(f'REST test failed: {str(e)}')
             raise
+
+
+class FhirFileDropOperation(BusinessOperation):
+    """Drops converted FHIR payloads to filesystem."""
+
+    output_dir: str = ''
+
+    def on_init(self) -> None:
+        """Initialize output directory."""
+        if not self.output_dir:
+            app_home = os.getenv('APP_HOME', os.getcwd())
+            self.output_dir = str(Path(app_home) / 'misc' / 'data' / 'fhir')
+
+    def on_fhir_converter_response(
+        self,
+        msg: FhirConverterResponse
+    ) -> FhirFileDropResponse:
+        """Write converted payload to data/fhir folder."""
+        output_path = Path(self.output_dir)
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        file_path = output_path / msg.output_filename
+        file_path.write_text(msg.output_data, encoding='utf-8')
+        self.log_info(f'Dropped converted FHIR file: {file_path}')
+
+        return FhirFileDropResponse(status=200, file_path=str(file_path))
 
 
 class FhirHttpOperation(BusinessOperation):
