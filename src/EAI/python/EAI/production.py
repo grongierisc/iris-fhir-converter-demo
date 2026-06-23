@@ -19,7 +19,6 @@ from .bo import (
     FhirConverterOperation,
     FhirFileDropOperation,
     FhirHttpOperation,
-    RandomRestOperation,
 )
 
 # Define the production topology using IoP 4.0 API
@@ -41,7 +40,6 @@ fhir_http_op = prod.operation(
     },
 )
 
-random_rest_op = prod.operation(RandomRestOperation)
 file_drop_op = prod.operation(FhirFileDropOperation)
 
 # Define processes

@@ -103,40 +103,6 @@ class FhirConverterOperation(BusinessOperation):
         except Exception as e:
             self.log_error(f'Conversion failed: {str(e)}')
             raise
-    
-
-
-class RandomRestOperation(BusinessOperation):
-    """Test external REST API integration (dummy operation for testing)."""
-
-    url: str = 'https://mockbin.io/bins/2eb86668f7ab407989787c97ec6b24ba'
-
-    def on_fhir_request(self, msg: FhirRequest) -> FhirResponse:
-        """
-        Make test REST request to external API.
-        
-        Args:
-            msg: FhirRequest (url/resource ignored for this dummy)
-            
-        Returns:
-            FhirResponse with API response
-        """
-        try:
-            self.log_info(f'Testing REST API: {self.url}')
-            response = requests.get(self.url, timeout=10, verify=False)
-            response.raise_for_status()
-
-            self.log_info(f'REST test successful: {response.status_code}')
-            return FhirResponse(
-                status_code=response.status_code,
-                content=response.text,
-                headers=dict(response.headers),
-                resource='random'
-            )
-        except Exception as e:
-            self.log_error(f'REST test failed: {str(e)}')
-            raise
-
 
 class FhirFileDropOperation(BusinessOperation):
     """Drops converted FHIR payloads to filesystem."""
